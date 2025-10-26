@@ -1,0 +1,53 @@
+{
+  "name": "vahidkaargar/laravel-wallet",
+  "description": "Finance-grade wallet & credit system for Laravel",
+  "type": "library",
+  "license": "MIT",
+  "version": "0.1",
+  "authors": [
+    {
+      "name": "Vahid Kaargar",
+      "email": "vahidkaargar@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^8.2",
+    "illuminate/support": "^10.0|^11.0|^12.0",
+    "illuminate/database": "^10.0|^11.0|^12.0",
+    "illuminate/events": "^10.0|^11.0|^12.0",
+    "illuminate/console": "^10.0|^11.0|^12.0"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^8.0|^9.0|^10.0",
+    "phpunit/phpunit": "^10.0|^11.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "vahidkaargar\\LaravelWallet\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "vahidkaargar\\LaravelWallet\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "vahidkaargar\\LaravelWallet\\WalletServiceProvider"
+      ]
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit",
+    "test-coverage": "php -m | grep -E '(xdebug|pcov)' > /dev/null && vendor/bin/phpunit --coverage-html coverage --coverage-text || echo 'No coverage driver found. Running tests without coverage...' && vendor/bin/phpunit"
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "php-http/discovery": true
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
