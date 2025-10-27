@@ -365,4 +365,22 @@ class WalletLedgerService
             'remaining_credit' => $wallet->getRemainingCredit()->toDecimal(),
         ];
     }
+
+    /**
+     * @param Wallet $wallet
+     * @return object
+     */
+    public function getWallet(Wallet $wallet): object
+    {
+        return literal(
+            model: $wallet,
+            balance: Money::fromDecimal($wallet->balance)->toDecimal(),
+            locked: Money::fromDecimal($wallet->locked)->toDecimal(),
+            credit_limit: Money::fromDecimal($wallet->credit)->toDecimal(),
+            available_balance: $wallet->available_balance->toDecimal(),
+            available_funds: $wallet->available_funds->toDecimal(),
+            debt: $wallet->debt->toDecimal(),
+            remaining_credit: $wallet->getRemainingCredit()->toDecimal(),
+        );
+    }
 }
