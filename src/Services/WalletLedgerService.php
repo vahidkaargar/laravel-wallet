@@ -353,6 +353,9 @@ class WalletLedgerService
     public function getWalletSummary(Wallet $wallet): array
     {
         return [
+            'name' => $wallet->name,
+            'slug' => $wallet->slug,
+            'currency' => $wallet->currency,
             'balance' => Money::fromDecimal($wallet->balance)->toDecimal(),
             'locked' => Money::fromDecimal($wallet->locked)->toDecimal(),
             'credit_limit' => Money::fromDecimal($wallet->credit)->toDecimal(),
