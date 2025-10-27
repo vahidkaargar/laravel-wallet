@@ -156,6 +156,15 @@ trait HasWallets
     }
 
     /**
+     * Get wallet summary for a specific wallet.
+     */
+    public function getWallet(string $walletSlug): object
+    {
+        $wallet = $this->getWalletBySlug($walletSlug);
+        return $this->ledger()->getWallet($wallet);
+    }
+
+    /**
      * Check if wallet has sufficient funds.
      */
     public function hasSufficientFunds(string $walletSlug, Money|float|string $amount): bool
