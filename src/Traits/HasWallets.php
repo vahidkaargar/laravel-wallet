@@ -60,12 +60,13 @@ trait HasWallets
      * Proxy for WalletLedgerService::deposit.
      */
     public function deposit(
-        string $walletSlug,
+        string             $walletSlug,
         Money|float|string $amount,
-        ?string $reference = null,
-        bool $autoApprove = true,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?string            $reference = null,
+        bool               $autoApprove = true,
+        ?array             $meta = null
+    ): WalletTransaction
+    {
         $wallet = $this->getWalletBySlug($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
         return $this->ledger()->deposit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
@@ -75,12 +76,13 @@ trait HasWallets
      * Proxy for WalletLedgerService::withdraw.
      */
     public function withdraw(
-        string $walletSlug,
+        string             $walletSlug,
         Money|float|string $amount,
-        ?string $reference = null,
-        bool $autoApprove = true,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?string            $reference = null,
+        bool               $autoApprove = true,
+        ?array             $meta = null
+    ): WalletTransaction
+    {
         $wallet = $this->getWalletBySlug($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
         return $this->ledger()->withdraw($wallet, $moneyAmount, $autoApprove, $reference, $meta);
@@ -90,12 +92,13 @@ trait HasWallets
      * Proxy for WalletLedgerService::lock.
      */
     public function lock(
-        string $walletSlug,
+        string             $walletSlug,
         Money|float|string $amount,
-        ?string $reference = null,
-        bool $autoApprove = true,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?string            $reference = null,
+        bool               $autoApprove = true,
+        ?array             $meta = null
+    ): WalletTransaction
+    {
         $wallet = $this->getWalletBySlug($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
         return $this->ledger()->lock($wallet, $moneyAmount, $autoApprove, $reference, $meta);
@@ -105,12 +108,13 @@ trait HasWallets
      * Proxy for WalletLedgerService::unlock.
      */
     public function unlock(
-        string $walletSlug,
+        string             $walletSlug,
         Money|float|string $amount,
-        ?string $reference = null,
-        bool $autoApprove = true,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?string            $reference = null,
+        bool               $autoApprove = true,
+        ?array             $meta = null
+    ): WalletTransaction
+    {
         $wallet = $this->getWalletBySlug($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
         return $this->ledger()->unlock($wallet, $moneyAmount, $autoApprove, $reference, $meta);
@@ -120,12 +124,13 @@ trait HasWallets
      * Proxy for WalletLedgerService::grantCredit.
      */
     public function grantCredit(
-        string $walletSlug,
+        string             $walletSlug,
         Money|float|string $amount,
-        ?string $reference = null,
-        bool $autoApprove = true,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?string            $reference = null,
+        bool               $autoApprove = true,
+        ?array             $meta = null
+    ): WalletTransaction
+    {
         $wallet = $this->getWalletBySlug($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
         return $this->ledger()->grantCredit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
@@ -135,12 +140,13 @@ trait HasWallets
      * Proxy for WalletLedgerService::revokeCredit.
      */
     public function revokeCredit(
-        string $walletSlug,
+        string             $walletSlug,
         Money|float|string $amount,
-        ?string $reference = null,
-        bool $autoApprove = true,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?string            $reference = null,
+        bool               $autoApprove = true,
+        ?array             $meta = null
+    ): WalletTransaction
+    {
         $wallet = $this->getWalletBySlug($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
         return $this->ledger()->revokeCredit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
@@ -178,17 +184,18 @@ trait HasWallets
      * Transfer funds between wallets with automatic currency conversion.
      */
     public function transfer(
-        string $fromWalletSlug,
-        string $toWalletSlug,
+        string             $fromWalletSlug,
+        string             $toWalletSlug,
         Money|float|string $amount,
-        bool $autoApprove = true,
-        ?string $reference = null,
-        ?array $meta = null
-    ): array {
+        bool               $autoApprove = true,
+        ?string            $reference = null,
+        ?array             $meta = null
+    ): array
+    {
         $fromWallet = $this->getWalletBySlug($fromWalletSlug);
         $toWallet = $this->getWalletBySlug($toWalletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
-        
+
         return $this->ledger()->transfer($fromWallet, $toWallet, $moneyAmount, $autoApprove, $reference, $meta);
     }
 }
