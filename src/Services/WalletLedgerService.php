@@ -18,22 +18,24 @@ use Illuminate\Support\Facades\Log;
 class WalletLedgerService
 {
     public function __construct(
-        protected CreditManagerService $creditManager,
+        protected CreditManagerService       $creditManager,
         protected TransactionApprovalService $approvalService,
-        protected ValidationService $validator
-    ) {
+        protected ValidationService          $validator
+    )
+    {
     }
 
     /**
      * Deposit funds into a wallet.
      */
     public function deposit(
-        Wallet $wallet,
-        Money $amount,
-        bool $autoApprove = true,
+        Wallet  $wallet,
+        Money   $amount,
+        bool    $autoApprove = true,
         ?string $reference = null,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?array  $meta = null
+    ): WalletTransaction
+    {
         if ($autoApprove) {
             $this->validator->validateWallet($wallet);
         }
@@ -55,12 +57,13 @@ class WalletLedgerService
      * @throws InsufficientFundsException
      */
     public function withdraw(
-        Wallet $wallet,
-        Money $amount,
-        bool $autoApprove = true,
+        Wallet  $wallet,
+        Money   $amount,
+        bool    $autoApprove = true,
         ?string $reference = null,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?array  $meta = null
+    ): WalletTransaction
+    {
         $this->validator->validateWithdrawal($wallet, $amount);
 
         return DB::transaction(function () use ($wallet, $amount, $autoApprove, $reference, $meta) {
@@ -92,12 +95,13 @@ class WalletLedgerService
      * @throws InsufficientFundsException
      */
     public function lock(
-        Wallet $wallet,
-        Money $amount,
-        bool $autoApprove = true,
+        Wallet  $wallet,
+        Money   $amount,
+        bool    $autoApprove = true,
         ?string $reference = null,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?array  $meta = null
+    ): WalletTransaction
+    {
         $this->validator->validateLock($wallet, $amount);
 
         return DB::transaction(function () use ($wallet, $amount, $autoApprove, $reference, $meta) {
@@ -126,12 +130,13 @@ class WalletLedgerService
      * Unlock previously locked funds.
      */
     public function unlock(
-        Wallet $wallet,
-        Money $amount,
-        bool $autoApprove = true,
+        Wallet  $wallet,
+        Money   $amount,
+        bool    $autoApprove = true,
         ?string $reference = null,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?array  $meta = null
+    ): WalletTransaction
+    {
         $this->validator->validateUnlock($wallet, $amount);
 
         return $this->createWalletTransaction(
@@ -148,12 +153,13 @@ class WalletLedgerService
      * Grant credit to a wallet.
      */
     public function grantCredit(
-        Wallet $wallet,
-        Money $amount,
-        bool $autoApprove = true,
+        Wallet  $wallet,
+        Money   $amount,
+        bool    $autoApprove = true,
         ?string $reference = null,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?array  $meta = null
+    ): WalletTransaction
+    {
         $this->validator->validateCreditGrant($wallet, $amount);
 
         return $this->createWalletTransaction(
@@ -170,12 +176,13 @@ class WalletLedgerService
      * Revoke credit from a wallet.
      */
     public function revokeCredit(
-        Wallet $wallet,
-        Money $amount,
-        bool $autoApprove = true,
+        Wallet  $wallet,
+        Money   $amount,
+        bool    $autoApprove = true,
         ?string $reference = null,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?array  $meta = null
+    ): WalletTransaction
+    {
         $this->validator->validateCreditRevoke($wallet, $amount);
 
         return $this->createWalletTransaction(
@@ -192,12 +199,13 @@ class WalletLedgerService
      * Charge interest on a wallet (typically for debt).
      */
     public function chargeInterest(
-        Wallet $wallet,
-        Money $amount,
-        bool $autoApprove = true,
+        Wallet  $wallet,
+        Money   $amount,
+        bool    $autoApprove = true,
         ?string $reference = null,
-        ?array $meta = null
-    ): WalletTransaction {
+        ?array  $meta = null
+    ): WalletTransaction
+    {
         $this->validator->validateWallet($wallet);
         $this->validator->validateAmount($amount);
 
@@ -214,16 +222,17 @@ class WalletLedgerService
     /**
      * Transfer funds between wallets with automatic currency conversion.
      *
-     * @throws \Exception
+     * @throws \Exception|\Throwable
      */
     public function transfer(
-        Wallet $fromWallet,
-        Wallet $toWallet,
-        Money $amount,
-        bool $autoApprove = true,
+        Wallet  $fromWallet,
+        Wallet  $toWallet,
+        Money   $amount,
+        bool    $autoApprove = true,
         ?string $reference = null,
-        ?array $meta = null
-    ): array {
+        ?array  $meta = null
+    ): array
+    {
         $this->validator->validateWallet($fromWallet);
         $this->validator->validateWallet($toWallet);
         $this->validator->validateAmount($amount);
@@ -295,14 +304,15 @@ class WalletLedgerService
      * Core function to create and optionally approve a transaction.
      */
     protected function createWalletTransaction(
-        Wallet $wallet,
-        string $type,
-        Money $amount,
-        bool $autoApprove,
+        Wallet  $wallet,
+        string  $type,
+        Money   $amount,
+        bool    $autoApprove,
         ?string $reference,
-        ?array $meta,
-        bool $useTransaction = true
-    ): WalletTransaction {
+        ?array  $meta,
+        bool    $useTransaction = true
+    ): WalletTransaction
+    {
         $createAndApprove = function ($walletInstance) use ($type, $amount, $autoApprove, $reference, $meta) {
             if (!$walletInstance->is_active && $autoApprove) {
                 throw new \Exception('Cannot auto-approve transactions for an inactive wallet.');
@@ -325,7 +335,7 @@ class WalletLedgerService
         };
 
         if ($useTransaction) {
-            return DB::transaction(fn () => $createAndApprove($wallet));
+            return DB::transaction(fn() => $createAndApprove($wallet));
         }
 
         return $createAndApprove($wallet);
