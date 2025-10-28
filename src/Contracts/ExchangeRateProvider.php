@@ -2,6 +2,7 @@
 
 namespace vahidkaargar\LaravelWallet\Contracts;
 
+use Exception;
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 
 interface ExchangeRateProvider
@@ -12,7 +13,7 @@ interface ExchangeRateProvider
      * @param string $fromCurrency The source currency code (e.g., 'USD')
      * @param string $toCurrency The target currency code (e.g., 'EUR')
      * @return float The exchange rate (e.g., 0.95 for USD to EUR)
-     * @throws \Exception If the exchange rate cannot be determined
+     * @throws Exception If the exchange rate cannot be determined
      */
     public function getExchangeRate(string $fromCurrency, string $toCurrency): float;
 
@@ -22,7 +23,7 @@ interface ExchangeRateProvider
      * @param Money $money The money to convert
      * @param string $toCurrency The target currency code
      * @return Money The converted money amount
-     * @throws \Exception If the conversion cannot be performed
+     * @throws Exception If the conversion cannot be performed
      */
     public function convert(Money $money, string $toCurrency): Money;
 
