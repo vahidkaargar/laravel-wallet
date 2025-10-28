@@ -2,15 +2,18 @@
 
 namespace vahidkaargar\LaravelWallet\Traits;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Throwable;
+use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use vahidkaargar\LaravelWallet\Exceptions\WalletNotFoundException;
 use vahidkaargar\LaravelWallet\Models\Wallet;
 use vahidkaargar\LaravelWallet\Models\WalletTransaction;
 use vahidkaargar\LaravelWallet\Services\WalletLedgerService;
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property-read Collection|Wallet[] $wallets
@@ -40,17 +43,32 @@ trait HasWallets
     }
 
     /**
-     * Get a specific wallet by its slug.
+     * Get a wallet by slug or Wallet instance.
+     * The returned wallet has access to formatted monetary fields:
+     * - $wallet->formatted_balance
+     * - $wallet->formatted_locked
+     * - $wallet->formatted_credit_limit
+     * - $wallet->available_balance (Money object)
+     * - $wallet->available_funds (Money object)
+     * - $wallet->debt (Money object)
+     * - $wallet->remaining_credit (Money object)
      *
-     * @param string $slug
+     * @param string|Wallet $walletOrSlug
      * @return Wallet
+     * @throws WalletNotFoundException
      */
-    public function getWalletBySlug(string $slug): Wallet
+    public function getWallet(string|Wallet $walletOrSlug): Wallet
     {
-        $wallet = $this->wallets()->where('slug', $slug)->first();
+        // If it's already a Wallet model, use it directly
+        if ($walletOrSlug instanceof Wallet) {
+            return $walletOrSlug;
+        }
 
+        // Otherwise, find by slug
+        $wallet = $this->wallets()->where('slug', $walletOrSlug)->first();
+        
         if (!$wallet) {
-            throw new WalletNotFoundException("Wallet with slug '$slug' not found for this user.");
+            throw new WalletNotFoundException("Wallet with slug '$walletOrSlug' not found for this user.");
         }
 
         return $wallet;
@@ -85,7 +103,7 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWalletBySlug($walletSlug);
+        $wallet = $this->getWallet($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
         return $this->ledger()->deposit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
     }
@@ -109,7 +127,7 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWalletBySlug($walletSlug);
+        $wallet = $this->getWallet($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
         return $this->ledger()->withdraw($wallet, $moneyAmount, $autoApprove, $reference, $meta);
     }
@@ -133,7 +151,7 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWalletBySlug($walletSlug);
+        $wallet = $this->getWallet($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
         return $this->ledger()->lock($wallet, $moneyAmount, $autoApprove, $reference, $meta);
     }
@@ -157,7 +175,7 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWalletBySlug($walletSlug);
+        $wallet = $this->getWallet($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
         return $this->ledger()->unlock($wallet, $moneyAmount, $autoApprove, $reference, $meta);
     }
@@ -181,7 +199,7 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWalletBySlug($walletSlug);
+        $wallet = $this->getWallet($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
         return $this->ledger()->grantCredit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
     }
@@ -205,46 +223,82 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWalletBySlug($walletSlug);
+        $wallet = $this->getWallet($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
         return $this->ledger()->revokeCredit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
     }
 
-    /**
-     * Get wallet summary for a specific wallet.
-     *
-     * @param string $walletSlug
-     * @return array
-     */
-    public function getWalletSummary(string $walletSlug): array
-    {
-        $wallet = $this->getWalletBySlug($walletSlug);
-        return $this->ledger()->getWalletSummary($wallet);
-    }
 
     /**
-     * Get wallet summary for a specific wallet.
-     * @param string $walletSlug
-     * @return object
-     */
-    public function getWallet(string $walletSlug): object
-    {
-        $wallet = $this->getWalletBySlug($walletSlug);
-        return $this->ledger()->getWallet($wallet);
-    }
-
-    /**
-     * Check if wallet has sufficient funds.
+     * Proxy for WalletLedgerService::chargeInterest.
      *
      * @param string $walletSlug
      * @param Money|float|string $amount
-     * @return bool
+     * @param bool $autoApprove
+     * @param string|null $reference
+     * @param array|null $meta
+     * @return WalletTransaction
+     * @throws Throwable
      */
-    public function hasSufficientFunds(string $walletSlug, Money|float|string $amount): bool
+    public function chargeInterest(
+        string             $walletSlug,
+        Money|float|string $amount,
+        bool               $autoApprove = true,
+        ?string            $reference = null,
+        ?array             $meta = null
+    ): WalletTransaction
     {
-        $wallet = $this->getWalletBySlug($walletSlug);
+        $wallet = $this->getWallet($walletSlug);
         $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
-        return $wallet->hasSufficientFunds($moneyAmount);
+        return $this->ledger()->chargeInterest($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+    }
+
+    /**
+     * Get wallet transactions with optional filters.
+     *
+     * @param string|Wallet $walletOrSlug
+     * @param TransactionType|null $type
+     * @param TransactionStatus|null $status
+     * @param Carbon|null $fromDate
+     * @param Carbon|null $toDate
+     * @param int|null $limit
+     * @param int $offset
+     * @return \Illuminate\Database\Eloquent\Collection|WalletTransaction[]
+     */
+    public function getWalletTransactions(
+        string|Wallet $walletOrSlug,
+        ?TransactionType $type = null,
+        ?TransactionStatus $status = null,
+        ?Carbon $fromDate = null,
+        ?Carbon $toDate = null,
+        ?int $limit = null,
+        int $offset = 0
+    ): \Illuminate\Database\Eloquent\Collection {
+        $wallet = $this->getWallet($walletOrSlug);
+        return $wallet->getTransactions($type, $status, $fromDate, $toDate, $limit, $offset);
+    }
+
+    /**
+     * Get wallet transactions paginated with optional filters.
+     *
+     * @param string|Wallet $walletOrSlug
+     * @param TransactionType|null $type
+     * @param TransactionStatus|null $status
+     * @param Carbon|null $fromDate
+     * @param Carbon|null $toDate
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getWalletTransactionsPaginated(
+        string|Wallet $walletOrSlug,
+        ?TransactionType $type = null,
+        ?TransactionStatus $status = null,
+        ?Carbon $fromDate = null,
+        ?Carbon $toDate = null,
+        int $perPage = 15
+    ): \Illuminate\Contracts\Pagination\LengthAwarePaginator {
+        $wallet = $this->getWallet($walletOrSlug);
+        return $wallet->getTransactionsPaginated($type, $status, $fromDate, $toDate, $perPage);
     }
 
     /**
