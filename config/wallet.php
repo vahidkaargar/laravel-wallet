@@ -91,13 +91,80 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Audit Logging
+    | Logging Configuration
     |--------------------------------------------------------------------------
     |
-    | Whether to enable detailed audit logging for all financial operations.
+    | Configuration for error and audit logging in wallet operations.
     |
     */
-    'audit_logging' => env('WALLET_AUDIT_LOGGING', true),
+    'logging' => [
+        /*
+        |--------------------------------------------------------------------------
+        | Enable Error Logging
+        |--------------------------------------------------------------------------
+        |
+        | Whether to enable error logging for wallet operations. Set to false
+        | to disable all error logging for performance optimization.
+        |
+        */
+        'enabled' => env('WALLET_ERROR_LOGGING', true),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Enable Audit Logging
+        |--------------------------------------------------------------------------
+        |
+        | Whether to enable detailed audit logging for all financial operations.
+        | This logs successful operations for compliance and auditing purposes.
+        |
+        */
+        'audit_enabled' => env('WALLET_AUDIT_LOGGING', true),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Log Channel
+        |--------------------------------------------------------------------------
+        |
+        | The log channel to use for wallet operations. This can be any channel
+        | defined in your logging configuration (e.g., 'single', 'daily', 'slack').
+        | Set to null to use the default channel.
+        |
+        */
+        'channel' => env('WALLET_LOG_CHANNEL', 'null'),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Log Level
+        |--------------------------------------------------------------------------
+        |
+        | The minimum log level for wallet operations. Options: debug, info,
+        | notice, warning, error, critical, alert, emergency.
+        |
+        */
+        'level' => env('WALLET_LOG_LEVEL', 'error'),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Include Stack Traces
+        |--------------------------------------------------------------------------
+        |
+        | Whether to include full stack traces in error logs. Disable for
+        | performance optimization in production.
+        |
+        */
+        'include_stack_trace' => env('WALLET_LOG_STACK_TRACE', true),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sensitive Data Masking
+        |--------------------------------------------------------------------------
+        |
+        | Whether to mask sensitive data in logs (e.g., partial credit card numbers).
+        | Enable for compliance with data protection regulations.
+        |
+        */
+        'mask_sensitive_data' => env('WALLET_MASK_SENSITIVE_DATA', false),
+    ],
 
     /*
     |--------------------------------------------------------------------------
