@@ -53,6 +53,8 @@ class WalletTransaction extends Model
 
     /**
      * The wallet this transaction belongs to.
+     *
+     * @return BelongsTo
      */
     public function wallet(): BelongsTo
     {
@@ -61,6 +63,8 @@ class WalletTransaction extends Model
 
     /**
      * Accessor for amount as Money object.
+     *
+     * @return Attribute
      */
     protected function moneyAmount(): Attribute
     {
@@ -71,6 +75,8 @@ class WalletTransaction extends Model
 
     /**
      * Check if transaction is pending.
+     *
+     * @return bool
      */
     public function isPending(): bool
     {
@@ -79,6 +85,8 @@ class WalletTransaction extends Model
 
     /**
      * Check if transaction is approved.
+     *
+     * @return bool
      */
     public function isApproved(): bool
     {
@@ -87,6 +95,8 @@ class WalletTransaction extends Model
 
     /**
      * Check if transaction is rejected.
+     *
+     * @return bool
      */
     public function isRejected(): bool
     {
@@ -95,6 +105,8 @@ class WalletTransaction extends Model
 
     /**
      * Check if transaction is reversed.
+     *
+     * @return bool
      */
     public function isReversed(): bool
     {
@@ -103,6 +115,8 @@ class WalletTransaction extends Model
 
     /**
      * Check if transaction is a deposit type.
+     *
+     * @return bool
      */
     public function isDeposit(): bool
     {
@@ -111,6 +125,8 @@ class WalletTransaction extends Model
 
     /**
      * Check if transaction is a withdrawal type.
+     *
+     * @return bool
      */
     public function isWithdrawal(): bool
     {
@@ -119,6 +135,8 @@ class WalletTransaction extends Model
 
     /**
      * Check if transaction affects balance positively.
+     *
+     * @return bool
      */
     public function increasesBalance(): bool
     {
@@ -131,6 +149,8 @@ class WalletTransaction extends Model
 
     /**
      * Check if transaction affects balance negatively.
+     *
+     * @return bool
      */
     public function decreasesBalance(): bool
     {

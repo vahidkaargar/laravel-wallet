@@ -3,7 +3,9 @@
 namespace vahidkaargar\LaravelWallet\Models;
 
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,10 +26,10 @@ use vahidkaargar\LaravelWallet\ValueObjects\Money;
  * @property-read Money $available_balance
  * @property-read Money $available_funds
  * @property-read Money $debt
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  * @property-read User $user
- * @property-read \Illuminate\Database\Eloquent\Collection|WalletTransaction[] $transactions
+ * @property-read Collection|WalletTransaction[] $transactions
  */
 class Wallet extends Model
 {
@@ -46,6 +48,8 @@ class Wallet extends Model
 
     /**
      * The user who owns this wallet.
+     *
+     * @return BelongsTo
      */
     public function user(): BelongsTo
     {
@@ -54,6 +58,8 @@ class Wallet extends Model
 
     /**
      * All transactions for this wallet.
+     *
+     * @return HasMany
      */
     public function transactions(): HasMany
     {
@@ -63,6 +69,8 @@ class Wallet extends Model
     /**
      * Accessor for the "available" balance (balance - locked).
      * This does *not* include credit.
+     *
+     * @return Attribute
      */
     protected function availableBalance(): Attribute
     {
@@ -78,6 +86,8 @@ class Wallet extends Model
 
     /**
      * Accessor for total available funds (balance + credit - locked).
+     *
+     * @return Attribute
      */
     protected function availableFunds(): Attribute
     {
@@ -105,6 +115,8 @@ class Wallet extends Model
 
     /**
      * Accessor for current debt (negative balance).
+     *
+     * @return Attribute
      */
     protected function debt(): Attribute
     {
@@ -118,6 +130,9 @@ class Wallet extends Model
 
     /**
      * Check if wallet has sufficient funds for a given amount.
+     *
+     * @param Money $amount
+     * @return bool
      */
     public function hasSufficientFunds(Money $amount): bool
     {
@@ -126,6 +141,9 @@ class Wallet extends Model
 
     /**
      * Check if wallet has sufficient unlocked balance for a given amount.
+     *
+     * @param Money $amount
+     * @return bool
      */
     public function hasSufficientUnlockedBalance(Money $amount): bool
     {
@@ -134,12 +152,14 @@ class Wallet extends Model
 
     /**
      * Get the remaining credit available.
+     *
+     * @return Money
      */
     public function getRemainingCredit(): Money
     {
         $credit = Money::fromDecimal($this->credit);
         $debt = $this->debt;
-        
+
         $remaining = $credit->subtract($debt);
         return $remaining->isPositive() ? $remaining : Money::fromCents(0);
     }
