@@ -12,6 +12,7 @@ use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use vahidkaargar\LaravelWallet\Exceptions\WalletNotFoundException;
 use vahidkaargar\LaravelWallet\Models\Wallet;
 use vahidkaargar\LaravelWallet\Models\WalletTransaction;
+use vahidkaargar\LaravelWallet\Services\LoggingService;
 use vahidkaargar\LaravelWallet\Services\WalletLedgerService;
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 
@@ -59,19 +60,29 @@ trait HasWallets
      */
     public function getWallet(string|Wallet $walletOrSlug): Wallet
     {
-        // If it's already a Wallet model, use it directly
-        if ($walletOrSlug instanceof Wallet) {
-            return $walletOrSlug;
-        }
+        try {
+            // If it's already a Wallet model, use it directly
+            if ($walletOrSlug instanceof Wallet) {
+                return $walletOrSlug;
+            }
 
-        // Otherwise, find by slug
-        $wallet = $this->wallets()->where('slug', $walletOrSlug)->first();
-        
-        if (!$wallet) {
-            throw new WalletNotFoundException("Wallet with slug '$walletOrSlug' not found for this user.");
-        }
+            // Otherwise, find by slug
+            $wallet = $this->wallets()->where('slug', $walletOrSlug)->first();
+            
+            if (!$wallet) {
+                throw new WalletNotFoundException("Wallet with slug '$walletOrSlug' not found for this user.");
+            }
 
-        return $wallet;
+            return $wallet;
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to get wallet', [
+                'user_id' => $this->id ?? 'unknown',
+                'wallet_slug' => is_string($walletOrSlug) ? $walletOrSlug : $walletOrSlug->slug ?? 'unknown',
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
+        }
     }
 
     /**
@@ -82,6 +93,16 @@ trait HasWallets
     protected function ledger(): WalletLedgerService
     {
         return app(WalletLedgerService::class);
+    }
+
+    /**
+     * Get the logging service instance.
+     *
+     * @return LoggingService
+     */
+    protected function logger(): LoggingService
+    {
+        return app(LoggingService::class);
     }
 
     /**
@@ -103,9 +124,23 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWallet($walletSlug);
-        $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
-        return $this->ledger()->deposit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        try {
+            $wallet = $this->getWallet($walletSlug);
+            $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
+            return $this->ledger()->deposit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to deposit funds', [
+                'user_id' => $this->id ?? 'unknown',
+                'wallet_slug' => $walletSlug,
+                'amount' => is_numeric($amount) ? $amount : 'non-numeric',
+                'reference' => $reference,
+                'auto_approve' => $autoApprove,
+                'meta' => $meta,
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
+        }
     }
 
     /**
@@ -127,9 +162,23 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWallet($walletSlug);
-        $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
-        return $this->ledger()->withdraw($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        try {
+            $wallet = $this->getWallet($walletSlug);
+            $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
+            return $this->ledger()->withdraw($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to withdraw funds', [
+                'user_id' => $this->id ?? 'unknown',
+                'wallet_slug' => $walletSlug,
+                'amount' => is_numeric($amount) ? $amount : 'non-numeric',
+                'reference' => $reference,
+                'auto_approve' => $autoApprove,
+                'meta' => $meta,
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
+        }
     }
 
     /**
@@ -151,9 +200,23 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWallet($walletSlug);
-        $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
-        return $this->ledger()->lock($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        try {
+            $wallet = $this->getWallet($walletSlug);
+            $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
+            return $this->ledger()->lock($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to lock funds', [
+                'user_id' => $this->id ?? 'unknown',
+                'wallet_slug' => $walletSlug,
+                'amount' => is_numeric($amount) ? $amount : 'non-numeric',
+                'reference' => $reference,
+                'auto_approve' => $autoApprove,
+                'meta' => $meta,
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
+        }
     }
 
     /**
@@ -175,9 +238,23 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWallet($walletSlug);
-        $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
-        return $this->ledger()->unlock($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        try {
+            $wallet = $this->getWallet($walletSlug);
+            $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
+            return $this->ledger()->unlock($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to unlock funds', [
+                'user_id' => $this->id ?? 'unknown',
+                'wallet_slug' => $walletSlug,
+                'amount' => is_numeric($amount) ? $amount : 'non-numeric',
+                'reference' => $reference,
+                'auto_approve' => $autoApprove,
+                'meta' => $meta,
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
+        }
     }
 
     /**
@@ -199,9 +276,23 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWallet($walletSlug);
-        $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
-        return $this->ledger()->grantCredit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        try {
+            $wallet = $this->getWallet($walletSlug);
+            $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
+            return $this->ledger()->grantCredit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to grant credit', [
+                'user_id' => $this->id ?? 'unknown',
+                'wallet_slug' => $walletSlug,
+                'amount' => is_numeric($amount) ? $amount : 'non-numeric',
+                'reference' => $reference,
+                'auto_approve' => $autoApprove,
+                'meta' => $meta,
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
+        }
     }
 
     /**
@@ -223,9 +314,23 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWallet($walletSlug);
-        $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
-        return $this->ledger()->revokeCredit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        try {
+            $wallet = $this->getWallet($walletSlug);
+            $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
+            return $this->ledger()->revokeCredit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to revoke credit', [
+                'user_id' => $this->id ?? 'unknown',
+                'wallet_slug' => $walletSlug,
+                'amount' => is_numeric($amount) ? $amount : 'non-numeric',
+                'reference' => $reference,
+                'auto_approve' => $autoApprove,
+                'meta' => $meta,
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
+        }
     }
 
 
@@ -248,9 +353,23 @@ trait HasWallets
         ?array             $meta = null
     ): WalletTransaction
     {
-        $wallet = $this->getWallet($walletSlug);
-        $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
-        return $this->ledger()->chargeInterest($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        try {
+            $wallet = $this->getWallet($walletSlug);
+            $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
+            return $this->ledger()->chargeInterest($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to charge interest', [
+                'user_id' => $this->id ?? 'unknown',
+                'wallet_slug' => $walletSlug,
+                'amount' => is_numeric($amount) ? $amount : 'non-numeric',
+                'reference' => $reference,
+                'auto_approve' => $autoApprove,
+                'meta' => $meta,
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
+        }
     }
 
     /**
@@ -274,8 +393,23 @@ trait HasWallets
         ?int $limit = null,
         int $offset = 0
     ): \Illuminate\Database\Eloquent\Collection {
-        $wallet = $this->getWallet($walletOrSlug);
-        return $wallet->getTransactions($type, $status, $fromDate, $toDate, $limit, $offset);
+        try {
+            $wallet = $this->getWallet($walletOrSlug);
+            return $wallet->getTransactions($type, $status, $fromDate, $toDate, $limit, $offset);
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to get wallet transactions via trait', [
+                'user_id' => $this->id ?? 'unknown',
+                'wallet_slug' => is_string($walletOrSlug) ? $walletOrSlug : $walletOrSlug->slug ?? 'unknown',
+                'type' => $type?->value,
+                'status' => $status?->value,
+                'from_date' => $fromDate?->toDateTimeString(),
+                'to_date' => $toDate?->toDateTimeString(),
+                'limit' => $limit,
+                'offset' => $offset,
+            ], $e);
+            
+            throw new \RuntimeException('Failed to retrieve wallet transactions: ' . $e->getMessage(), 0, $e);
+        }
     }
 
     /**
@@ -297,8 +431,22 @@ trait HasWallets
         ?Carbon $toDate = null,
         int $perPage = 15
     ): \Illuminate\Contracts\Pagination\LengthAwarePaginator {
-        $wallet = $this->getWallet($walletOrSlug);
-        return $wallet->getTransactionsPaginated($type, $status, $fromDate, $toDate, $perPage);
+        try {
+            $wallet = $this->getWallet($walletOrSlug);
+            return $wallet->getTransactionsPaginated($type, $status, $fromDate, $toDate, $perPage);
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to get paginated wallet transactions via trait', [
+                'user_id' => $this->id ?? 'unknown',
+                'wallet_slug' => is_string($walletOrSlug) ? $walletOrSlug : $walletOrSlug->slug ?? 'unknown',
+                'type' => $type?->value,
+                'status' => $status?->value,
+                'from_date' => $fromDate?->toDateTimeString(),
+                'to_date' => $toDate?->toDateTimeString(),
+                'per_page' => $perPage,
+            ], $e);
+            
+            throw new \RuntimeException('Failed to retrieve paginated wallet transactions: ' . $e->getMessage(), 0, $e);
+        }
     }
 
     /**
@@ -322,10 +470,25 @@ trait HasWallets
         ?array             $meta = null
     ): array
     {
-        $fromWallet = $this->getWalletBySlug($fromWalletSlug);
-        $toWallet = $this->getWalletBySlug($toWalletSlug);
-        $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
+        try {
+            $fromWallet = $this->getWallet($fromWalletSlug);
+            $toWallet = $this->getWallet($toWalletSlug);
+            $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
 
-        return $this->ledger()->transfer($fromWallet, $toWallet, $moneyAmount, $autoApprove, $reference, $meta);
+            return $this->ledger()->transfer($fromWallet, $toWallet, $moneyAmount, $autoApprove, $reference, $meta);
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to transfer funds', [
+                'user_id' => $this->id ?? 'unknown',
+                'from_wallet_slug' => $fromWalletSlug,
+                'to_wallet_slug' => $toWalletSlug,
+                'amount' => is_numeric($amount) ? $amount : 'non-numeric',
+                'reference' => $reference,
+                'auto_approve' => $autoApprove,
+                'meta' => $meta,
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
+        }
     }
 }

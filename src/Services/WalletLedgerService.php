@@ -10,9 +10,9 @@ use vahidkaargar\LaravelWallet\Exceptions\InvalidAmountException;
 use vahidkaargar\LaravelWallet\Exceptions\InsufficientFundsException;
 use vahidkaargar\LaravelWallet\Models\Wallet;
 use vahidkaargar\LaravelWallet\Models\WalletTransaction;
+use vahidkaargar\LaravelWallet\Services\LoggingService;
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Service for creating and managing wallet transactions (the "ledger").
@@ -25,11 +25,13 @@ class WalletLedgerService
      * @param CreditManagerService $creditManager
      * @param TransactionApprovalService $approvalService
      * @param ValidationService $validator
+     * @param LoggingService $logger
      */
     public function __construct(
         protected CreditManagerService       $creditManager,
         protected TransactionApprovalService $approvalService,
-        protected ValidationService          $validator
+        protected ValidationService          $validator,
+        protected LoggingService            $logger
     )
     {
     }
@@ -53,19 +55,33 @@ class WalletLedgerService
         ?array  $meta = null
     ): WalletTransaction
     {
-        if ($autoApprove) {
-            $this->validator->validateWallet($wallet);
-        }
-        $this->validator->validateAmount($amount);
+        try {
+            if ($autoApprove) {
+                $this->validator->validateWallet($wallet);
+            }
+            $this->validator->validateAmount($amount);
 
-        return $this->createWalletTransaction(
-            $wallet,
-            TransactionType::DEPOSIT,
-            $amount,
-            $autoApprove,
-            $reference,
-            $meta
-        );
+            return $this->createWalletTransaction(
+                $wallet,
+                TransactionType::DEPOSIT,
+                $amount,
+                $autoApprove,
+                $reference,
+                $meta
+            );
+        } catch (\Exception $e) {
+            $this->logger->logError('Failed to deposit funds via ledger service', [
+                'wallet_id' => $wallet->id ?? 'unknown',
+                'wallet_slug' => $wallet->slug ?? 'unknown',
+                'amount' => $amount->toDecimal(),
+                'reference' => $reference,
+                'auto_approve' => $autoApprove,
+                'meta' => $meta,
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
+        }
     }
 
     /**
@@ -87,29 +103,43 @@ class WalletLedgerService
         ?array  $meta = null
     ): WalletTransaction
     {
-        $this->validator->validateWithdrawal($wallet, $amount);
+        try {
+            $this->validator->validateWithdrawal($wallet, $amount);
 
-        return DB::transaction(function () use ($wallet, $amount, $autoApprove, $reference, $meta) {
-            // Lock wallet for update to prevent race conditions
-            $lockedWallet = Wallet::query()->lockForUpdate()->find($wallet->id);
+            return DB::transaction(function () use ($wallet, $amount, $autoApprove, $reference, $meta) {
+                // Lock wallet for update to prevent race conditions
+                $lockedWallet = Wallet::query()->lockForUpdate()->find($wallet->id);
 
-            if (!$lockedWallet) {
-                throw new Exception('Wallet not found during withdrawal.');
-            }
+                if (!$lockedWallet) {
+                    throw new Exception('Wallet not found during withdrawal.');
+                }
 
-            // Re-validate with locked wallet to ensure funds are still available
-            $this->validator->validateWithdrawal($lockedWallet, $amount);
+                // Re-validate with locked wallet to ensure funds are still available
+                $this->validator->validateWithdrawal($lockedWallet, $amount);
 
-            return $this->createWalletTransaction(
-                $lockedWallet,
-                TransactionType::WITHDRAW,
-                $amount,
-                $autoApprove,
-                $reference,
-                $meta,
-                false // Wallet is already locked, don't re-lock in createWalletTransaction
-            );
-        });
+                return $this->createWalletTransaction(
+                    $lockedWallet,
+                    TransactionType::WITHDRAW,
+                    $amount,
+                    $autoApprove,
+                    $reference,
+                    $meta,
+                    false // Wallet is already locked, don't re-lock in createWalletTransaction
+                );
+            });
+        } catch (\Exception $e) {
+            $this->logger->logError('Failed to withdraw funds via ledger service', [
+                'wallet_id' => $wallet->id ?? 'unknown',
+                'wallet_slug' => $wallet->slug ?? 'unknown',
+                'amount' => $amount->toDecimal(),
+                'reference' => $reference,
+                'auto_approve' => $autoApprove,
+                'meta' => $meta,
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
+        }
     }
 
     /**

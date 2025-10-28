@@ -7,6 +7,7 @@ use vahidkaargar\LaravelWallet\Services\CreditAgingService;
 use vahidkaargar\LaravelWallet\Services\CreditManagerService;
 use vahidkaargar\LaravelWallet\Services\CurrencyConverterService;
 use vahidkaargar\LaravelWallet\Services\ConfigExchangeRateProvider;
+use vahidkaargar\LaravelWallet\Services\LoggingService;
 use vahidkaargar\LaravelWallet\Services\TransactionApprovalService;
 use vahidkaargar\LaravelWallet\Services\TransactionRollbackService;
 use vahidkaargar\LaravelWallet\Services\ValidationService;
@@ -41,6 +42,10 @@ class WalletServiceProvider extends ServiceProvider
             return new ValidationService();
         });
 
+        $this->app->singleton(LoggingService::class, function ($app) {
+            return new LoggingService();
+        });
+
         $this->app->singleton(CreditManagerService::class, function ($app) {
             return new CreditManagerService();
         });
@@ -56,7 +61,8 @@ class WalletServiceProvider extends ServiceProvider
             return new WalletLedgerService(
                 $app->make(CreditManagerService::class),
                 $app->make(TransactionApprovalService::class),
-                $app->make(ValidationService::class)
+                $app->make(ValidationService::class),
+                $app->make(LoggingService::class)
             );
         });
 
