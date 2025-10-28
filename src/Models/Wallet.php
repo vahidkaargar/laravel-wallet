@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
 use vahidkaargar\LaravelWallet\Enums\TransactionType;
+use vahidkaargar\LaravelWallet\Services\LoggingService;
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 
 /**
@@ -63,6 +64,16 @@ class Wallet extends Model
     }
 
     /**
+     * Get the logging service instance.
+     *
+     * @return LoggingService
+     */
+    protected function logger(): LoggingService
+    {
+        return app(LoggingService::class);
+    }
+
+    /**
      * All transactions for this wallet.
      *
      * @return HasMany
@@ -91,31 +102,46 @@ class Wallet extends Model
         ?int $limit = null,
         int $offset = 0
     ): \Illuminate\Database\Eloquent\Collection {
-        $query = $this->transactions();
+        try {
+            $query = $this->transactions();
 
-        if ($type) {
-            $query->where('type', $type->value);
+            if ($type) {
+                $query->where('type', $type->value);
+            }
+
+            if ($status) {
+                $query->where('status', $status->value);
+            }
+
+            if ($fromDate) {
+                $query->where('created_at', '>=', $fromDate);
+            }
+
+            if ($toDate) {
+                $query->where('created_at', '<=', $toDate);
+            }
+
+            $query->orderBy('created_at', 'desc');
+
+            if ($limit) {
+                $query->limit($limit)->offset($offset);
+            }
+
+            return $query->get();
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to get wallet transactions', [
+                'wallet_id' => $this->id,
+                'type' => $type?->value,
+                'status' => $status?->value,
+                'from_date' => $fromDate?->toDateTimeString(),
+                'to_date' => $toDate?->toDateTimeString(),
+                'limit' => $limit,
+                'offset' => $offset,
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
         }
-
-        if ($status) {
-            $query->where('status', $status->value);
-        }
-
-        if ($fromDate) {
-            $query->where('created_at', '>=', $fromDate);
-        }
-
-        if ($toDate) {
-            $query->where('created_at', '<=', $toDate);
-        }
-
-        $query->orderBy('created_at', 'desc');
-
-        if ($limit) {
-            $query->limit($limit)->offset($offset);
-        }
-
-        return $query->get();
     }
 
     /**
@@ -135,25 +161,39 @@ class Wallet extends Model
         ?Carbon $toDate = null,
         int $perPage = 15
     ): \Illuminate\Contracts\Pagination\LengthAwarePaginator {
-        $query = $this->transactions();
+        try {
+            $query = $this->transactions();
 
-        if ($type) {
-            $query->where('type', $type->value);
+            if ($type) {
+                $query->where('type', $type->value);
+            }
+
+            if ($status) {
+                $query->where('status', $status->value);
+            }
+
+            if ($fromDate) {
+                $query->where('created_at', '>=', $fromDate);
+            }
+
+            if ($toDate) {
+                $query->where('created_at', '<=', $toDate);
+            }
+
+            return $query->orderBy('created_at', 'desc')->paginate($perPage);
+        } catch (\Exception $e) {
+            $this->logger()->logError('Failed to get paginated wallet transactions', [
+                'wallet_id' => $this->id,
+                'type' => $type?->value,
+                'status' => $status?->value,
+                'from_date' => $fromDate?->toDateTimeString(),
+                'to_date' => $toDate?->toDateTimeString(),
+                'per_page' => $perPage,
+            ], $e);
+            
+            // Re-throw the original exception to preserve type information
+            throw $e;
         }
-
-        if ($status) {
-            $query->where('status', $status->value);
-        }
-
-        if ($fromDate) {
-            $query->where('created_at', '>=', $fromDate);
-        }
-
-        if ($toDate) {
-            $query->where('created_at', '<=', $toDate);
-        }
-
-        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     /**
