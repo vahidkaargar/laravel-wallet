@@ -105,27 +105,29 @@ $eurWallet = $user->createWallet([
 ```php
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 
-// Deposit funds
-$user->deposit('usd', Money::fromDecimal(1000.00));
+// Deposit funds (amounts can be floated, string, or Money object)
+$user->deposit('usd', 1000.00);
+$user->deposit('usd', '1000.00');  // String also works
+$user->deposit('usd', Money::fromDecimal(1000.00)); // Money object also works
 
 // Withdraw funds
-$user->withdraw('usd', Money::fromDecimal(250.00));
+$user->withdraw('usd', 250.00);
 
 // Grant credit
-$user->grantCredit('usd', Money::fromDecimal(5000.00));
+$user->grantCredit('usd', 5000.00);
 
 // Lock funds (for escrow)
-$user->lock('usd', Money::fromDecimal(100.00));
+$user->lock('usd', 100.00);
 
 // Unlock funds
-$user->unlock('usd', Money::fromDecimal(100.00));
+$user->unlock('usd', 100.00);
 ```
 
 ### 4. Cross-wallet transfers with currency conversion
 
 ```php
 // Transfer from USD wallet to EUR wallet (automatic conversion)
-$result = $user->transfer('usd', 'eur', Money::fromDecimal(100.00));
+$result = $user->transfer('usd', 'eur', 100.00);
 
 // Result contains both transactions and conversion details
 echo "Original amount: " . $result['original_amount']->toDecimal() . " USD\n";
@@ -136,21 +138,71 @@ echo "Exchange rate: " . $result['conversion_rate'] . "\n";
 ### 5. Check wallet status
 
 ```php
-// Get wallet summary
-$summary = $user->getWalletSummary('usd');
-/*
-[
-    'balance' => Money object,
-    'available_balance' => Money object,
-    'available_funds' => Money object,
-    'locked' => Money object,
-    'credit' => Money object,
-    'debt' => Money object,
-]
-*/
+// Get wallet - all monetary fields are automatically formatted
+$wallet = $user->getWallet('usd');
+
+// Access formatted decimal values
+$balance = $wallet->formatted_balance;
+$locked = $wallet->formatted_locked;
+$creditLimit = $wallet->formatted_credit_limit;
+
+// Access Money objects for calculations
+$availableBalance = $wallet->available_balance; // Money object
+$availableFunds = $wallet->available_funds;     // Money object
+$debt = $wallet->debt;                          // Money object
+$remainingCredit = $wallet->remaining_credit;  // Money object
+
+// Convert Money objects to decimals
+echo $availableBalance->toDecimal();  // "100.00"
+echo $availableFunds->toDecimal();   // "500.00"
+echo $debt->toDecimal();            // "0.00"
+echo $remainingCredit->toDecimal(); // "5000.00"
 
 // Check if sufficient funds are available
-$hasFunds = $user->hasSufficientFunds('usd', Money::fromDecimal(500.00));
+$hasFunds = $user->hasSufficientFunds('usd', 500.00);
+```
+
+### 6. Transaction History and Filtering
+
+```php
+use Carbon\Carbon;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
+use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
+
+// Get all transactions for a wallet
+$allTransactions = $user->getWalletTransactions('usd');
+
+// Filter by transaction type
+$deposits = $user->getWalletTransactions('usd', type: TransactionType::DEPOSIT);
+$withdrawals = $user->getWalletTransactions('usd', type: TransactionType::WITHDRAW);
+
+// Filter by status
+$approvedTransactions = $user->getWalletTransactions('usd', status: TransactionStatus::APPROVED);
+$pendingTransactions = $user->getWalletTransactions('usd', status: TransactionStatus::PENDING);
+
+// Filter by date range
+$fromDate = Carbon::now()->subDays(30);
+$toDate = Carbon::now();
+$recentTransactions = $user->getWalletTransactions('usd', fromDate: $fromDate, toDate: $toDate);
+
+// Combined filters
+$recentDeposits = $user->getWalletTransactions(
+    'usd',
+    type: TransactionType::DEPOSIT,
+    status: TransactionStatus::APPROVED,
+    fromDate: Carbon::now()->subDays(7)
+);
+
+// Paginated results
+$paginatedTransactions = $user->getWalletTransactionsPaginated('usd', perPage: 10);
+
+// Limit and offset for custom pagination
+$limitedTransactions = $user->getWalletTransactions('usd', limit: 5, offset: 10);
+
+// Direct wallet access (alternative approach)
+$wallet = $user->getWallet('usd');
+$transactions = $wallet->getTransactions(type: TransactionType::DEPOSIT);
+$paginated = $wallet->getTransactionsPaginated(status: TransactionStatus::APPROVED);
 ```
 
 ## Advanced Usage
@@ -160,11 +212,13 @@ $hasFunds = $user->hasSufficientFunds('usd', Money::fromDecimal(500.00));
 ```php
 use vahidkaargar\LaravelWallet\Services\WalletLedgerService;
 use vahidkaargar\LaravelWallet\Models\WalletTransaction;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
+use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
 
 $ledger = app(WalletLedgerService::class);
 
 // Create a pending transaction
-$transaction = $ledger->deposit($wallet, Money::fromDecimal(1000.00), false);
+$transaction = $ledger->deposit($wallet, 1000.00, false);
 
 // Approve the transaction
 $approvalService = app(\vahidkaargar\LaravelWallet\Services\TransactionApprovalService::class);
@@ -340,7 +394,7 @@ return [
 
 ```php
 // Now all transfers will use your live exchange rates
-$result = $user->transfer('usd', 'eur', Money::fromDecimal(100.00));
+$result = $user->transfer('usd', 'eur', 100.00);
 
 // The conversion will use live rates from your API
 echo "Live rate: " . $result['conversion_rate'] . "\n";
@@ -351,7 +405,7 @@ echo "Converted amount: " . $result['converted_amount']->toDecimal() . " EUR\n";
 
 ```php
 try {
-    $result = $user->transfer('usd', 'eur', Money::fromDecimal(100.00));
+    $result = $user->transfer('usd', 'eur', 100.00);
 } catch (\Exception $e) {
     // Handle exchange rate API failures
     if (str_contains($e->getMessage(), 'Exchange rate not found')) {
@@ -365,6 +419,7 @@ try {
 
 ```php
 use vahidkaargar\LaravelWallet\Services\BatchReversalService;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use Carbon\Carbon;
 
 $batchService = app(BatchReversalService::class);
@@ -377,7 +432,7 @@ $count = $batchService->rejectPendingOlderThan(
 
 // Rollback approved transactions older than 30 days
 $count = $batchService->rollbackApprovedByTypeOlderThan(
-    WalletTransaction::TYPE_DEPOSIT,
+    TransactionType::DEPOSIT,
     Carbon::now()->subDays(30),
     'Regulatory compliance'
 );
@@ -392,15 +447,15 @@ $eurWallet = $user->createWallet(['slug' => 'eur', 'currency' => 'EUR']);
 $gbpWallet = $user->createWallet(['slug' => 'gbp', 'currency' => 'GBP']);
 
 // Deposit in different currencies
-$user->deposit('usd', Money::fromDecimal(1000.00));
-$user->deposit('eur', Money::fromDecimal(800.00));
-$user->deposit('gbp', Money::fromDecimal(600.00));
+$user->deposit('usd', 1000.00);
+$user->deposit('eur', 800.00);
+$user->deposit('gbp', 600.00);
 
 // Transfer between different currencies
-$result = $user->transfer('usd', 'eur', Money::fromDecimal(100.00));
+$result = $user->transfer('usd', 'eur', 100.00);
 // 100 USD becomes 95 EUR (rate: 0.95)
 
-$result = $user->transfer('eur', 'gbp', Money::fromDecimal(50.00));
+$result = $user->transfer('eur', 'gbp', 50.00);
 // 50 EUR becomes 43 GBP (rate: 0.86)
 ```
 
@@ -408,18 +463,18 @@ $result = $user->transfer('eur', 'gbp', Money::fromDecimal(50.00));
 
 ```php
 // Grant credit to a wallet
-$user->grantCredit('usd', Money::fromDecimal(5000.00));
+$user->grantCredit('usd', 5000.00);
 
 // Withdraw using credit (creates debt)
-$user->withdraw('usd', Money::fromDecimal(2000.00));
+$user->withdraw('usd', 2000.00);
 // Balance: -2000, Credit: 5000, Available funds: 3000
 
 // Deposit automatically repays debt
-$user->deposit('usd', Money::fromDecimal(1500.00));
+$user->deposit('usd', 1500.00);
 // Balance: -500, Credit: 5000, Debt: 500
 
 // Revoke credit (cannot exceed current debt)
-$user->revokeCredit('usd', Money::fromDecimal(4500.00));
+$user->revokeCredit('usd', 4500.00);
 // New credit limit: 500 (matches current debt)
 ```
 
@@ -427,14 +482,14 @@ $user->revokeCredit('usd', Money::fromDecimal(4500.00));
 
 ```php
 // Lock funds for escrow
-$user->lock('usd', Money::fromDecimal(500.00));
+$user->lock('usd', 500.00);
 // Available balance decreases, locked amount increases
 
 // Process escrow (example: approve a purchase)
 // ... business logic ...
 
 // Unlock funds after successful transaction
-$user->unlock('usd', Money::fromDecimal(500.00));
+$user->unlock('usd', 500.00);
 // Locked amount decreases, available balance increases
 ```
 
