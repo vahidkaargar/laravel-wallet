@@ -54,8 +54,80 @@ return [
         'GBP' => ['USD' => 1.22, 'EUR' => 1.16],
     ],
     'supported_currencies' => ['USD', 'EUR', 'GBP', 'JPY'],
-    'audit_logging' => true,
+    
+    // Logging Configuration
+    'logging' => [
+        'enabled' => env('WALLET_ERROR_LOGGING', true),
+        'audit_enabled' => env('WALLET_AUDIT_LOGGING', true),
+        'channel' => env('WALLET_LOG_CHANNEL', 'wallet'),
+        'level' => env('WALLET_LOG_LEVEL', 'error'),
+        'include_stack_trace' => env('WALLET_LOG_STACK_TRACE', true),
+        'mask_sensitive_data' => env('WALLET_MASK_SENSITIVE_DATA', false),
+    ],
 ];
+```
+
+### Environment Variables
+
+Add these to your `.env` file for logging configuration:
+
+```env
+# Enable/disable error logging
+WALLET_ERROR_LOGGING=true
+
+# Enable/disable audit logging for compliance
+WALLET_AUDIT_LOGGING=true
+
+# Custom log channel (optional)
+WALLET_LOG_CHANNEL=wallet
+
+# Minimum log level
+WALLET_LOG_LEVEL=error
+
+# Include stack traces in logs
+WALLET_LOG_STACK_TRACE=true
+
+# Mask sensitive data in logs
+WALLET_MASK_SENSITIVE_DATA=false
+```
+
+### Log Channel Configuration
+
+Configure a dedicated wallet log channel in `config/logging.php`:
+
+```php
+'channels' => [
+    // ... other channels ...
+    
+    'wallet' => [
+        'driver' => 'daily',
+        'path' => storage_path('logs/wallet.log'),
+        'level' => env('LOG_LEVEL', 'debug'),
+        'days' => 14,
+    ],
+    
+    // For production with external logging services
+    'wallet_production' => [
+        'driver' => 'stack',
+        'channels' => ['wallet_daily', 'wallet_slack'],
+        'ignore_exceptions' => false,
+    ],
+    
+    'wallet_daily' => [
+        'driver' => 'daily',
+        'path' => storage_path('logs/wallet.log'),
+        'level' => 'error',
+        'days' => 30,
+    ],
+    
+    'wallet_slack' => [
+        'driver' => 'slack',
+        'url' => env('WALLET_SLACK_WEBHOOK_URL'),
+        'username' => 'Wallet Bot',
+        'emoji' => ':money_with_wings:',
+        'level' => 'critical',
+    ],
+],
 ```
 
 ## Quick Start
