@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -24,10 +23,15 @@ return new class extends Migration
                 'credit_repay',
                 'interest_charge'
             ])->index();
-            $table->decimal('amount', 15, 2);
+            $table->decimal('amount', 15);
             $table->string('reference')->nullable();
             $table->json('meta')->nullable();
-            $table->enum('status', ['pending', 'approved', 'rejected', 'reversed'])->default('pending');
+            $table->enum('status', [
+                'pending',
+                'approved',
+                'rejected',
+                'reversed'
+            ])->default('pending');
             $table->timestamps();
 
             $table->index('status');
