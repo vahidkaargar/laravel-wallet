@@ -4,6 +4,8 @@ namespace vahidkaargar\LaravelWallet\Services;
 
 use Exception;
 use Throwable;
+use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use vahidkaargar\LaravelWallet\Models\WalletTransaction;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -36,13 +38,13 @@ class BatchReversalService
         $count = 0;
 
         WalletTransaction::query()
-            ->where('status', WalletTransaction::STATUS_PENDING)
+            ->where('status', TransactionStatus::PENDING)
             ->where('created_at', '<', $date)
             ->chunkById(100, function ($transactions) use (&$count, $reason) {
                 foreach ($transactions as $transaction) {
                     try {
                         DB::transaction(function () use ($transaction, $reason) {
-                            $transaction->status = WalletTransaction::STATUS_REJECTED;
+                            $transaction->status = TransactionStatus::REJECTED;
                             $transaction->meta = array_merge($transaction->meta ?? [], [
                                 'rejection_reason' => $reason
                             ]);
@@ -62,19 +64,19 @@ class BatchReversalService
      * Rolls back *approved* transactions of a specific type older than a given date.
      * This is a "true" reversal. Use with caution.
      *
-     * @param string $type
+     * @param TransactionType $type
      * @param Carbon $date
      * @param string $reason
      * @return int The number of transactions reversed.
      * @throws Throwable
      */
-    public function rollbackApprovedByTypeOlderThan(string $type, Carbon $date, string $reason = 'Expired transaction reversal'): int
+    public function rollbackApprovedByTypeOlderThan(TransactionType $type, Carbon $date, string $reason = 'Expired transaction reversal'): int
     {
         $count = 0;
 
         WalletTransaction::query()
-            ->where('status', WalletTransaction::STATUS_APPROVED)
-            ->where('type', $type)
+            ->where('status', TransactionStatus::APPROVED)
+            ->where('type', $type->value)
             ->where('created_at', '<', $date)
             ->chunkById(100, function ($transactions) use (&$count, $reason) {
                 foreach ($transactions as $transaction) {

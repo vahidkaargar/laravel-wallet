@@ -4,6 +4,8 @@ namespace vahidkaargar\LaravelWallet\Services;
 
 use Exception;
 use Throwable;
+use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use vahidkaargar\LaravelWallet\Exceptions\InvalidAmountException;
 use vahidkaargar\LaravelWallet\Exceptions\InsufficientFundsException;
 use vahidkaargar\LaravelWallet\Models\Wallet;
@@ -58,7 +60,7 @@ class WalletLedgerService
 
         return $this->createWalletTransaction(
             $wallet,
-            WalletTransaction::TYPE_DEPOSIT,
+            TransactionType::DEPOSIT,
             $amount,
             $autoApprove,
             $reference,
@@ -100,7 +102,7 @@ class WalletLedgerService
 
             return $this->createWalletTransaction(
                 $lockedWallet,
-                WalletTransaction::TYPE_WITHDRAW,
+                TransactionType::WITHDRAW,
                 $amount,
                 $autoApprove,
                 $reference,
@@ -143,7 +145,7 @@ class WalletLedgerService
 
             return $this->createWalletTransaction(
                 $lockedWallet,
-                WalletTransaction::TYPE_LOCK,
+                TransactionType::LOCK,
                 $amount,
                 $autoApprove,
                 $reference,
@@ -176,7 +178,7 @@ class WalletLedgerService
 
         return $this->createWalletTransaction(
             $wallet,
-            WalletTransaction::TYPE_UNLOCK,
+            TransactionType::UNLOCK,
             $amount,
             $autoApprove,
             $reference,
@@ -207,7 +209,7 @@ class WalletLedgerService
 
         return $this->createWalletTransaction(
             $wallet,
-            WalletTransaction::TYPE_CREDIT_GRANT,
+            TransactionType::CREDIT_GRANT,
             $amount,
             $autoApprove,
             $reference,
@@ -238,7 +240,7 @@ class WalletLedgerService
 
         return $this->createWalletTransaction(
             $wallet,
-            WalletTransaction::TYPE_CREDIT_REVOKE,
+            TransactionType::CREDIT_REVOKE,
             $amount,
             $autoApprove,
             $reference,
@@ -270,7 +272,7 @@ class WalletLedgerService
 
         return $this->createWalletTransaction(
             $wallet,
-            WalletTransaction::TYPE_INTEREST_CHARGE,
+            TransactionType::INTEREST_CHARGE,
             $amount,
             $autoApprove,
             $reference,
@@ -325,7 +327,7 @@ class WalletLedgerService
             // Create withdrawal transaction
             $withdrawalTransaction = $this->createWalletTransaction(
                 $lockedFromWallet,
-                WalletTransaction::TYPE_WITHDRAW,
+                TransactionType::WITHDRAW,
                 $amount,
                 $autoApprove,
                 $reference ?: 'Transfer to ' . $lockedToWallet->slug,
@@ -342,7 +344,7 @@ class WalletLedgerService
             // Create deposit transaction
             $depositTransaction = $this->createWalletTransaction(
                 $lockedToWallet,
-                WalletTransaction::TYPE_DEPOSIT,
+                TransactionType::DEPOSIT,
                 $convertedAmount,
                 $autoApprove,
                 $reference ?: 'Transfer from ' . $lockedFromWallet->slug,
@@ -370,7 +372,7 @@ class WalletLedgerService
      * Core function to create and optionally approve a transaction.
      *
      * @param Wallet $wallet
-     * @param string $type
+     * @param TransactionType $type
      * @param Money $amount
      * @param bool $autoApprove
      * @param string|null $reference
@@ -381,7 +383,7 @@ class WalletLedgerService
      */
     protected function createWalletTransaction(
         Wallet  $wallet,
-        string  $type,
+        TransactionType  $type,
         Money   $amount,
         bool    $autoApprove,
         ?string $reference,
@@ -396,11 +398,11 @@ class WalletLedgerService
 
             /** @var WalletTransaction $transaction */
             $transaction = $walletInstance->transactions()->create([
-                'type' => $type,
+                'type' => $type->value,
                 'amount' => $amount->toDecimal(),
                 'reference' => $reference,
                 'meta' => $meta,
-                'status' => WalletTransaction::STATUS_PENDING,
+                'status' => TransactionStatus::PENDING,
             ]);
 
             if ($autoApprove) {
@@ -442,48 +444,4 @@ class WalletLedgerService
         return $this->approvalService->reject($transaction, $reason);
     }
 
-    /**
-     * Get wallet balance summary.
-     *
-     * @param Wallet $wallet
-     * @return array
-     */
-    public function getWalletSummary(Wallet $wallet): array
-    {
-        return [
-            'name' => $wallet->name,
-            'slug' => $wallet->slug,
-            'currency' => $wallet->currency,
-            'balance' => Money::fromDecimal($wallet->balance)->toDecimal(),
-            'locked' => Money::fromDecimal($wallet->locked)->toDecimal(),
-            'credit_limit' => Money::fromDecimal($wallet->credit)->toDecimal(),
-            'available_balance' => $wallet->available_balance->toDecimal(),
-            'available_funds' => $wallet->available_funds->toDecimal(),
-            'debt' => $wallet->debt->toDecimal(),
-            'remaining_credit' => $wallet->getRemainingCredit()->toDecimal(),
-        ];
-    }
-
-    /**
-     * Get wallet
-     *
-     * @param Wallet $wallet
-     * @return object
-     */
-    public function getWallet(Wallet $wallet): object
-    {
-        return literal(
-            model: $wallet,
-            name: $wallet->name,
-            slug: $wallet->slug,
-            currency: $wallet->currency,
-            balance: Money::fromDecimal($wallet->balance)->toDecimal(),
-            locked: Money::fromDecimal($wallet->locked)->toDecimal(),
-            credit_limit: Money::fromDecimal($wallet->credit)->toDecimal(),
-            available_balance: $wallet->available_balance->toDecimal(),
-            available_funds: $wallet->available_funds->toDecimal(),
-            debt: $wallet->debt->toDecimal(),
-            remaining_credit: $wallet->getRemainingCredit()->toDecimal(),
-        );
-    }
 }

@@ -3,6 +3,8 @@
 namespace vahidkaargar\LaravelWallet\Services;
 
 use Exception;
+use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use vahidkaargar\LaravelWallet\Exceptions\InvalidAmountException;
 use vahidkaargar\LaravelWallet\Exceptions\InsufficientFundsException;
 use vahidkaargar\LaravelWallet\Exceptions\WalletNotFoundException;
@@ -189,7 +191,7 @@ class ValidationService
      */
     public function validateTransactionForApproval(WalletTransaction $transaction): void
     {
-        if ($transaction->status !== WalletTransaction::STATUS_PENDING) {
+        if ($transaction->status !== TransactionStatus::PENDING) {
             throw new Exception('Only pending transactions can be approved.');
         }
 
@@ -197,24 +199,24 @@ class ValidationService
         $amount = Money::fromDecimal($transaction->amount);
 
         switch ($transaction->type) {
-            case WalletTransaction::TYPE_WITHDRAW:
+            case TransactionType::WITHDRAW:
                 $this->validateWithdrawal($wallet, $amount);
                 break;
-            case WalletTransaction::TYPE_LOCK:
+            case TransactionType::LOCK:
                 $this->validateLock($wallet, $amount);
                 break;
-            case WalletTransaction::TYPE_UNLOCK:
+            case TransactionType::UNLOCK:
                 $this->validateUnlock($wallet, $amount);
                 break;
-            case WalletTransaction::TYPE_CREDIT_GRANT:
+            case TransactionType::CREDIT_GRANT:
                 $this->validateCreditGrant($wallet, $amount);
                 break;
-            case WalletTransaction::TYPE_CREDIT_REVOKE:
+            case TransactionType::CREDIT_REVOKE:
                 $this->validateCreditRevoke($wallet, $amount);
                 break;
-            case WalletTransaction::TYPE_DEPOSIT:
-            case WalletTransaction::TYPE_CREDIT_REPAY:
-            case WalletTransaction::TYPE_INTEREST_CHARGE:
+            case TransactionType::DEPOSIT:
+            case TransactionType::CREDIT_REPAY:
+            case TransactionType::INTEREST_CHARGE:
                 // These operations don't require additional validation beyond amount
                 $this->validateAmount($amount);
                 break;

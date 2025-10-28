@@ -5,6 +5,8 @@ namespace vahidkaargar\LaravelWallet\Services;
 use Exception;
 use InvalidArgumentException;
 use Throwable;
+use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use vahidkaargar\LaravelWallet\Events\TransactionReversed;
 use vahidkaargar\LaravelWallet\Models\Wallet;
 use vahidkaargar\LaravelWallet\Models\WalletTransaction;
@@ -58,7 +60,7 @@ class TransactionRollbackService
             $wallet->save();
 
             // Mark original transaction as reversed
-            $originalTransaction->status = WalletTransaction::STATUS_REVERSED;
+            $originalTransaction->status = TransactionStatus::REVERSED;
             $originalTransaction->meta = array_merge($originalTransaction->meta ?? [], [
                 'reversed_at' => now()->toISOString(),
                 'reversal_reason' => $reason,
@@ -76,7 +78,7 @@ class TransactionRollbackService
                     'reversed_transaction_id' => $originalTransaction->id,
                     'reversed_at' => now()->toISOString(),
                 ],
-                'status' => WalletTransaction::STATUS_APPROVED, // Reversals are auto-approved
+                'status' => TransactionStatus::APPROVED, // Reversals are auto-approved
             ]);
 
             event(new TransactionReversed($originalTransaction, $reversalTransaction));
@@ -103,34 +105,34 @@ class TransactionRollbackService
     protected function applyReversal(Wallet $wallet, WalletTransaction $originalTransaction, Money $amount): void
     {
         switch ($originalTransaction->type) {
-            case WalletTransaction::TYPE_DEPOSIT:
-            case WalletTransaction::TYPE_CREDIT_REPAY:
+            case TransactionType::DEPOSIT:
+            case TransactionType::CREDIT_REPAY:
                 $newBalance = Money::fromDecimal($wallet->balance)->subtract($amount);
                 $wallet->balance = $newBalance->toDecimal();
                 break;
 
-            case WalletTransaction::TYPE_WITHDRAW:
-            case WalletTransaction::TYPE_INTEREST_CHARGE:
+            case TransactionType::WITHDRAW:
+            case TransactionType::INTEREST_CHARGE:
                 $newBalance = Money::fromDecimal($wallet->balance)->add($amount);
                 $wallet->balance = $newBalance->toDecimal();
                 break;
 
-            case WalletTransaction::TYPE_LOCK:
+            case TransactionType::LOCK:
                 $newLocked = Money::fromDecimal($wallet->locked)->subtract($amount);
                 $wallet->locked = $newLocked->toDecimal();
                 break;
 
-            case WalletTransaction::TYPE_UNLOCK:
+            case TransactionType::UNLOCK:
                 $newLocked = Money::fromDecimal($wallet->locked)->add($amount);
                 $wallet->locked = $newLocked->toDecimal();
                 break;
 
-            case WalletTransaction::TYPE_CREDIT_GRANT:
+            case TransactionType::CREDIT_GRANT:
                 $newCredit = Money::fromDecimal($wallet->credit)->subtract($amount);
                 $wallet->credit = $newCredit->toDecimal();
                 break;
 
-            case WalletTransaction::TYPE_CREDIT_REVOKE:
+            case TransactionType::CREDIT_REVOKE:
                 $newCredit = Money::fromDecimal($wallet->credit)->add($amount);
                 $wallet->credit = $newCredit->toDecimal();
                 break;
@@ -146,16 +148,15 @@ class TransactionRollbackService
      * @param string $originalType
      * @return string
      */
-    protected function getReversalType(string $originalType): string
+    protected function getReversalType(TransactionType $originalType): TransactionType
     {
         return match ($originalType) {
-            WalletTransaction::TYPE_DEPOSIT, WalletTransaction::TYPE_CREDIT_REPAY => WalletTransaction::TYPE_WITHDRAW,
-            WalletTransaction::TYPE_WITHDRAW, WalletTransaction::TYPE_INTEREST_CHARGE => WalletTransaction::TYPE_DEPOSIT,
-            WalletTransaction::TYPE_LOCK => WalletTransaction::TYPE_UNLOCK,
-            WalletTransaction::TYPE_UNLOCK => WalletTransaction::TYPE_LOCK,
-            WalletTransaction::TYPE_CREDIT_GRANT => WalletTransaction::TYPE_CREDIT_REVOKE,
-            WalletTransaction::TYPE_CREDIT_REVOKE => WalletTransaction::TYPE_CREDIT_GRANT,
-            default => throw new InvalidArgumentException("Unknown transaction type: $originalType"),
+            TransactionType::DEPOSIT, TransactionType::CREDIT_REPAY => TransactionType::WITHDRAW,
+            TransactionType::WITHDRAW, TransactionType::INTEREST_CHARGE => TransactionType::DEPOSIT,
+            TransactionType::LOCK => TransactionType::UNLOCK,
+            TransactionType::UNLOCK => TransactionType::LOCK,
+            TransactionType::CREDIT_GRANT => TransactionType::CREDIT_REVOKE,
+            TransactionType::CREDIT_REVOKE => TransactionType::CREDIT_GRANT,
         };
     }
 }

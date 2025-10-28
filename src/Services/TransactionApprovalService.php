@@ -5,6 +5,8 @@ namespace vahidkaargar\LaravelWallet\Services;
 use Exception;
 use InvalidArgumentException;
 use Throwable;
+use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use vahidkaargar\LaravelWallet\Events\CreditGranted;
 use vahidkaargar\LaravelWallet\Events\WalletDeposited;
 use vahidkaargar\LaravelWallet\Events\WalletWithdrawn;
@@ -71,7 +73,7 @@ class TransactionApprovalService
                 $wallet->save();
 
                 // Update transaction status
-                $transaction->status = WalletTransaction::STATUS_APPROVED;
+                $transaction->status = TransactionStatus::APPROVED;
                 $transaction->save();
 
                 // Dispatch appropriate event
@@ -108,37 +110,37 @@ class TransactionApprovalService
     protected function applyTransaction(Wallet $wallet, WalletTransaction $transaction, Money $amount): void
     {
         switch ($transaction->type) {
-            case WalletTransaction::TYPE_DEPOSIT:
-            case WalletTransaction::TYPE_CREDIT_REPAY:
+            case TransactionType::DEPOSIT:
+            case TransactionType::CREDIT_REPAY:
                 $this->creditManager->applyDeposit($wallet, $transaction);
                 break;
 
-            case WalletTransaction::TYPE_WITHDRAW:
+            case TransactionType::WITHDRAW:
                 $newBalance = Money::fromDecimal($wallet->balance)->subtract($amount);
                 $wallet->balance = $newBalance->toDecimal();
                 break;
 
-            case WalletTransaction::TYPE_LOCK:
+            case TransactionType::LOCK:
                 $newLocked = Money::fromDecimal($wallet->locked)->add($amount);
                 $wallet->locked = $newLocked->toDecimal();
                 break;
 
-            case WalletTransaction::TYPE_UNLOCK:
+            case TransactionType::UNLOCK:
                 $newLocked = Money::fromDecimal($wallet->locked)->subtract($amount);
                 $wallet->locked = $newLocked->toDecimal();
                 break;
 
-            case WalletTransaction::TYPE_CREDIT_GRANT:
+            case TransactionType::CREDIT_GRANT:
                 $newCredit = Money::fromDecimal($wallet->credit)->add($amount);
                 $wallet->credit = $newCredit->toDecimal();
                 break;
 
-            case WalletTransaction::TYPE_CREDIT_REVOKE:
+            case TransactionType::CREDIT_REVOKE:
                 $newCredit = Money::fromDecimal($wallet->credit)->subtract($amount);
                 $wallet->credit = $newCredit->toDecimal();
                 break;
 
-            case WalletTransaction::TYPE_INTEREST_CHARGE:
+            case TransactionType::INTEREST_CHARGE:
                 // Interest can drive balance further negative, no funds check needed.
                 $newBalance = Money::fromDecimal($wallet->balance)->subtract($amount);
                 $wallet->balance = $newBalance->toDecimal();
@@ -164,7 +166,7 @@ class TransactionApprovalService
         }
 
         return DB::transaction(function () use ($transaction, $reason) {
-            $transaction->status = WalletTransaction::STATUS_REJECTED;
+            $transaction->status = TransactionStatus::REJECTED;
             $transaction->meta = array_merge($transaction->meta ?? [], [
                 'rejection_reason' => $reason,
                 'rejected_at' => now()->toISOString(),
@@ -191,9 +193,9 @@ class TransactionApprovalService
     protected function dispatchApprovalEvent(Wallet $wallet, WalletTransaction $transaction): void
     {
         match ($transaction->type) {
-            WalletTransaction::TYPE_DEPOSIT => event(new WalletDeposited($wallet, $transaction)),
-            WalletTransaction::TYPE_WITHDRAW => event(new WalletWithdrawn($wallet, $transaction)),
-            WalletTransaction::TYPE_CREDIT_GRANT => event(new CreditGranted($wallet, $transaction->amount, $transaction)),
+            TransactionType::DEPOSIT => event(new WalletDeposited($wallet, $transaction)),
+            TransactionType::WITHDRAW => event(new WalletWithdrawn($wallet, $transaction)),
+            TransactionType::CREDIT_GRANT => event(new CreditGranted($wallet, $transaction->amount, $transaction)),
             // Other events (CreditRepaid, etc.) are fired from CreditManagerService
             default => null,
         };
