@@ -2,6 +2,9 @@
 
 namespace vahidkaargar\LaravelWallet\Services;
 
+use Exception;
+use InvalidArgumentException;
+use Throwable;
 use vahidkaargar\LaravelWallet\Events\TransactionReversed;
 use vahidkaargar\LaravelWallet\Models\Wallet;
 use vahidkaargar\LaravelWallet\Models\WalletTransaction;
@@ -15,6 +18,9 @@ use Illuminate\Support\Facades\Log;
  */
 class TransactionRollbackService
 {
+    /**
+     * @param CreditManagerService $creditManager
+     */
     public function __construct(protected CreditManagerService $creditManager)
     {
     }
@@ -22,12 +28,15 @@ class TransactionRollbackService
     /**
      * Rolls back an approved transaction.
      *
-     * @throws \Exception
+     * @param WalletTransaction $originalTransaction
+     * @param string|null $reason
+     * @return WalletTransaction
+     * @throws Throwable
      */
     public function rollback(WalletTransaction $originalTransaction, ?string $reason = null): WalletTransaction
     {
         if (!$originalTransaction->isApproved()) {
-            throw new \Exception('Only approved transactions can be reversed.');
+            throw new Exception('Only approved transactions can be reversed.');
         }
 
         return DB::transaction(function () use ($originalTransaction, $reason) {
@@ -36,7 +45,7 @@ class TransactionRollbackService
             $wallet = $originalTransaction->wallet()->lockForUpdate()->first();
 
             if (!$wallet) {
-                throw new \Exception('Wallet not found during rollback operation.');
+                throw new Exception('Wallet not found during rollback operation.');
             }
 
             $amount = Money::fromDecimal($originalTransaction->amount);
@@ -72,7 +81,7 @@ class TransactionRollbackService
 
             event(new TransactionReversed($originalTransaction, $reversalTransaction));
 
-            Log::info("Transaction {$originalTransaction->id} reversed", [
+            Log::info("Transaction $originalTransaction->id reversed", [
                 'wallet_id' => $wallet->id,
                 'original_type' => $originalTransaction->type,
                 'reversal_type' => $reversalType,
@@ -86,6 +95,10 @@ class TransactionRollbackService
 
     /**
      * Apply the reversal logic to the wallet.
+     *
+     * @param Wallet $wallet
+     * @param WalletTransaction $originalTransaction
+     * @param Money $amount
      */
     protected function applyReversal(Wallet $wallet, WalletTransaction $originalTransaction, Money $amount): void
     {
@@ -123,25 +136,26 @@ class TransactionRollbackService
                 break;
 
             default:
-                throw new \InvalidArgumentException("Unknown transaction type for reversal: {$originalTransaction->type}");
+                throw new InvalidArgumentException("Unknown transaction type for reversal: $originalTransaction->type");
         }
     }
 
     /**
      * Get the opposing transaction type for a reversal.
+     *
+     * @param string $originalType
+     * @return string
      */
     protected function getReversalType(string $originalType): string
     {
         return match ($originalType) {
-            WalletTransaction::TYPE_DEPOSIT => WalletTransaction::TYPE_WITHDRAW,
-            WalletTransaction::TYPE_WITHDRAW => WalletTransaction::TYPE_DEPOSIT,
+            WalletTransaction::TYPE_DEPOSIT, WalletTransaction::TYPE_CREDIT_REPAY => WalletTransaction::TYPE_WITHDRAW,
+            WalletTransaction::TYPE_WITHDRAW, WalletTransaction::TYPE_INTEREST_CHARGE => WalletTransaction::TYPE_DEPOSIT,
             WalletTransaction::TYPE_LOCK => WalletTransaction::TYPE_UNLOCK,
             WalletTransaction::TYPE_UNLOCK => WalletTransaction::TYPE_LOCK,
             WalletTransaction::TYPE_CREDIT_GRANT => WalletTransaction::TYPE_CREDIT_REVOKE,
             WalletTransaction::TYPE_CREDIT_REVOKE => WalletTransaction::TYPE_CREDIT_GRANT,
-            WalletTransaction::TYPE_INTEREST_CHARGE => WalletTransaction::TYPE_DEPOSIT, // Reversing interest is a "deposit"
-            WalletTransaction::TYPE_CREDIT_REPAY => WalletTransaction::TYPE_WITHDRAW, // Reversing a repay is a "withdraw"
-            default => throw new \InvalidArgumentException("Unknown transaction type: {$originalType}"),
+            default => throw new InvalidArgumentException("Unknown transaction type: $originalType"),
         };
     }
 }

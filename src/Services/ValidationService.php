@@ -2,6 +2,7 @@
 
 namespace vahidkaargar\LaravelWallet\Services;
 
+use Exception;
 use vahidkaargar\LaravelWallet\Exceptions\InvalidAmountException;
 use vahidkaargar\LaravelWallet\Exceptions\InsufficientFundsException;
 use vahidkaargar\LaravelWallet\Exceptions\WalletNotFoundException;
@@ -17,6 +18,8 @@ class ValidationService
 {
     /**
      * Validate amount for any transaction.
+     *
+     * @param Money $amount
      */
     public function validateAmount(Money $amount): void
     {
@@ -33,6 +36,10 @@ class ValidationService
 
     /**
      * Validate wallet is active and accessible.
+     *
+     * @param Wallet $wallet
+     * @return void
+     * @throws Exception
      */
     public function validateWallet(Wallet $wallet): void
     {
@@ -41,12 +48,17 @@ class ValidationService
         }
 
         if (!$wallet->is_active) {
-            throw new \Exception('Wallet is not active.');
+            throw new Exception('Wallet is not active.');
         }
     }
 
     /**
      * Validate withdrawal operation.
+     *
+     * @param Wallet $wallet
+     * @param Money $amount
+     * @return void
+     * @throws Exception
      */
     public function validateWithdrawal(Wallet $wallet, Money $amount): void
     {
@@ -54,7 +66,7 @@ class ValidationService
         $this->validateAmount($amount);
 
         $availableFunds = $this->calculateAvailableFunds($wallet);
-        
+
         if ($amount->greaterThan($availableFunds)) {
             throw new InsufficientFundsException(
                 sprintf(
@@ -68,6 +80,11 @@ class ValidationService
 
     /**
      * Validate lock operation.
+     *
+     * @param Wallet $wallet
+     * @param Money $amount
+     * @return void
+     * @throws Exception
      */
     public function validateLock(Wallet $wallet, Money $amount): void
     {
@@ -75,7 +92,7 @@ class ValidationService
         $this->validateAmount($amount);
 
         $availableBalance = $this->calculateAvailableBalance($wallet);
-        
+
         if ($amount->greaterThan($availableBalance)) {
             throw new InsufficientFundsException(
                 sprintf(
@@ -89,6 +106,11 @@ class ValidationService
 
     /**
      * Validate unlock operation.
+     *
+     * @param Wallet $wallet
+     * @param Money $amount
+     * @return void
+     * @throws Exception
      */
     public function validateUnlock(Wallet $wallet, Money $amount): void
     {
@@ -96,7 +118,7 @@ class ValidationService
         $this->validateAmount($amount);
 
         $lockedAmount = Money::fromDecimal($wallet->locked ?? 0);
-        
+
         if ($amount->greaterThan($lockedAmount)) {
             throw new InsufficientFundsException(
                 sprintf(
@@ -110,6 +132,11 @@ class ValidationService
 
     /**
      * Validate credit grant operation.
+     *
+     * @param Wallet $wallet
+     * @param Money $amount
+     * @return void
+     * @throws Exception
      */
     public function validateCreditGrant(Wallet $wallet, Money $amount): void
     {
@@ -119,14 +146,19 @@ class ValidationService
         // Check maximum credit limit
         $maxCredit = Money::fromDecimal(config('wallet.max_credit_limit', 100000.00));
         $newCredit = Money::fromDecimal($wallet->credit ?? 0)->add($amount);
-        
+
         if ($newCredit->greaterThan($maxCredit)) {
-            throw new \Exception('Credit grant would exceed maximum credit limit.');
+            throw new Exception('Credit grant would exceed maximum credit limit.');
         }
     }
 
     /**
      * Validate credit revoke operation.
+     *
+     * @param Wallet $wallet
+     * @param Money $amount
+     * @return void
+     * @throws Exception
      */
     public function validateCreditRevoke(Wallet $wallet, Money $amount): void
     {
@@ -134,27 +166,31 @@ class ValidationService
         $this->validateAmount($amount);
 
         $currentCredit = Money::fromDecimal($wallet->credit ?? 0);
-        
+
         if ($amount->greaterThan($currentCredit)) {
-            throw new \Exception('Cannot revoke more credit than currently available.');
+            throw new Exception('Cannot revoke more credit than currently available.');
         }
 
         // Check if revoking would leave debt exceeding new credit limit
         $newCredit = $currentCredit->subtract($amount);
         $currentDebt = $this->calculateDebt($wallet);
-        
+
         if ($currentDebt->greaterThan($newCredit)) {
-            throw new \Exception('Cannot revoke credit, would result in debt exceeding credit limit.');
+            throw new Exception('Cannot revoke credit, would result in debt exceeding credit limit.');
         }
     }
 
     /**
      * Validate transaction for approval.
+     *
+     * @param WalletTransaction $transaction
+     * @return void
+     * @throws Exception
      */
     public function validateTransactionForApproval(WalletTransaction $transaction): void
     {
         if ($transaction->status !== WalletTransaction::STATUS_PENDING) {
-            throw new \Exception('Only pending transactions can be approved.');
+            throw new Exception('Only pending transactions can be approved.');
         }
 
         $wallet = $transaction->wallet;
@@ -187,6 +223,9 @@ class ValidationService
 
     /**
      * Calculate available funds (balance + credit - locked).
+     *
+     * @param Wallet $wallet
+     * @return Money
      */
     private function calculateAvailableFunds(Wallet $wallet): Money
     {
@@ -210,18 +249,24 @@ class ValidationService
 
     /**
      * Calculate available balance (balance - locked, no credit).
+     *
+     * @param Wallet $wallet
+     * @return Money
      */
     private function calculateAvailableBalance(Wallet $wallet): Money
     {
         $balance = Money::fromDecimal($wallet->balance ?? 0);
         $locked = Money::fromDecimal($wallet->locked ?? 0);
-        
+
         $available = $balance->subtract($locked);
         return $available->isNegative() ? Money::fromCents(0) : $available;
     }
 
     /**
      * Calculate current debt (negative balance).
+     *
+     * @param Wallet $wallet
+     * @return Money
      */
     private function calculateDebt(Wallet $wallet): Money
     {

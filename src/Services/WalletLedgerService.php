@@ -2,6 +2,8 @@
 
 namespace vahidkaargar\LaravelWallet\Services;
 
+use Exception;
+use Throwable;
 use vahidkaargar\LaravelWallet\Exceptions\InvalidAmountException;
 use vahidkaargar\LaravelWallet\Exceptions\InsufficientFundsException;
 use vahidkaargar\LaravelWallet\Models\Wallet;
@@ -17,6 +19,11 @@ use Illuminate\Support\Facades\Log;
  */
 class WalletLedgerService
 {
+    /**
+     * @param CreditManagerService $creditManager
+     * @param TransactionApprovalService $approvalService
+     * @param ValidationService $validator
+     */
     public function __construct(
         protected CreditManagerService       $creditManager,
         protected TransactionApprovalService $approvalService,
@@ -27,6 +34,14 @@ class WalletLedgerService
 
     /**
      * Deposit funds into a wallet.
+     *
+     * @param Wallet $wallet
+     * @param Money $amount
+     * @param bool $autoApprove
+     * @param string|null $reference
+     * @param array|null $meta
+     * @return WalletTransaction
+     * @throws Throwable
      */
     public function deposit(
         Wallet  $wallet,
@@ -54,7 +69,13 @@ class WalletLedgerService
     /**
      * Withdraw funds from a wallet.
      *
-     * @throws InsufficientFundsException
+     * @param Wallet $wallet
+     * @param Money $amount
+     * @param bool $autoApprove
+     * @param string|null $reference
+     * @param array|null $meta
+     * @return WalletTransaction
+     * @throws Throwable
      */
     public function withdraw(
         Wallet  $wallet,
@@ -68,10 +89,10 @@ class WalletLedgerService
 
         return DB::transaction(function () use ($wallet, $amount, $autoApprove, $reference, $meta) {
             // Lock wallet for update to prevent race conditions
-            $lockedWallet = Wallet::lockForUpdate()->find($wallet->id);
+            $lockedWallet = Wallet::query()->lockForUpdate()->find($wallet->id);
 
             if (!$lockedWallet) {
-                throw new \Exception('Wallet not found during withdrawal.');
+                throw new Exception('Wallet not found during withdrawal.');
             }
 
             // Re-validate with locked wallet to ensure funds are still available
@@ -92,7 +113,13 @@ class WalletLedgerService
     /**
      * Lock funds in a wallet.
      *
-     * @throws InsufficientFundsException
+     * @param Wallet $wallet
+     * @param Money $amount
+     * @param bool $autoApprove
+     * @param string|null $reference
+     * @param array|null $meta
+     * @return WalletTransaction
+     * @throws Throwable
      */
     public function lock(
         Wallet  $wallet,
@@ -105,10 +132,10 @@ class WalletLedgerService
         $this->validator->validateLock($wallet, $amount);
 
         return DB::transaction(function () use ($wallet, $amount, $autoApprove, $reference, $meta) {
-            $lockedWallet = Wallet::lockForUpdate()->find($wallet->id);
+            $lockedWallet = Wallet::query()->lockForUpdate()->find($wallet->id);
 
             if (!$lockedWallet) {
-                throw new \Exception('Wallet not found during lock operation.');
+                throw new Exception('Wallet not found during lock operation.');
             }
 
             // Re-validate with locked wallet
@@ -128,6 +155,14 @@ class WalletLedgerService
 
     /**
      * Unlock previously locked funds.
+     *
+     * @param Wallet $wallet
+     * @param Money $amount
+     * @param bool $autoApprove
+     * @param string|null $reference
+     * @param array|null $meta
+     * @return WalletTransaction
+     * @throws Throwable
      */
     public function unlock(
         Wallet  $wallet,
@@ -151,6 +186,14 @@ class WalletLedgerService
 
     /**
      * Grant credit to a wallet.
+     *
+     * @param Wallet $wallet
+     * @param Money $amount
+     * @param bool $autoApprove
+     * @param string|null $reference
+     * @param array|null $meta
+     * @return WalletTransaction
+     * @throws Throwable
      */
     public function grantCredit(
         Wallet  $wallet,
@@ -174,6 +217,14 @@ class WalletLedgerService
 
     /**
      * Revoke credit from a wallet.
+     *
+     * @param Wallet $wallet
+     * @param Money $amount
+     * @param bool $autoApprove
+     * @param string|null $reference
+     * @param array|null $meta
+     * @return WalletTransaction
+     * @throws Throwable
      */
     public function revokeCredit(
         Wallet  $wallet,
@@ -197,6 +248,14 @@ class WalletLedgerService
 
     /**
      * Charge interest on a wallet (typically for debt).
+     *
+     * @param Wallet $wallet
+     * @param Money $amount
+     * @param bool $autoApprove
+     * @param string|null $reference
+     * @param array|null $meta
+     * @return WalletTransaction
+     * @throws Throwable
      */
     public function chargeInterest(
         Wallet  $wallet,
@@ -222,7 +281,14 @@ class WalletLedgerService
     /**
      * Transfer funds between wallets with automatic currency conversion.
      *
-     * @throws \Exception|\Throwable
+     * @param Wallet $fromWallet
+     * @param Wallet $toWallet
+     * @param Money $amount
+     * @param bool $autoApprove
+     * @param string|null $reference
+     * @param array|null $meta
+     * @return array
+     * @throws Throwable
      */
     public function transfer(
         Wallet  $fromWallet,
@@ -239,11 +305,11 @@ class WalletLedgerService
 
         return DB::transaction(function () use ($fromWallet, $toWallet, $amount, $autoApprove, $reference, $meta) {
             // Lock both wallets for update to prevent race conditions
-            $lockedFromWallet = Wallet::lockForUpdate()->find($fromWallet->id);
-            $lockedToWallet = Wallet::lockForUpdate()->find($toWallet->id);
+            $lockedFromWallet = Wallet::query()->lockForUpdate()->find($fromWallet->id);
+            $lockedToWallet = Wallet::query()->lockForUpdate()->find($toWallet->id);
 
             if (!$lockedFromWallet || !$lockedToWallet) {
-                throw new \Exception('One or both wallets not found during transfer.');
+                throw new Exception('One or both wallets not found during transfer.');
             }
 
             // Check if currency conversion is needed
@@ -302,6 +368,16 @@ class WalletLedgerService
 
     /**
      * Core function to create and optionally approve a transaction.
+     *
+     * @param Wallet $wallet
+     * @param string $type
+     * @param Money $amount
+     * @param bool $autoApprove
+     * @param string|null $reference
+     * @param array|null $meta
+     * @param bool $useTransaction
+     * @return WalletTransaction
+     * @throws Throwable
      */
     protected function createWalletTransaction(
         Wallet  $wallet,
@@ -315,7 +391,7 @@ class WalletLedgerService
     {
         $createAndApprove = function ($walletInstance) use ($type, $amount, $autoApprove, $reference, $meta) {
             if (!$walletInstance->is_active && $autoApprove) {
-                throw new \Exception('Cannot auto-approve transactions for an inactive wallet.');
+                throw new Exception('Cannot auto-approve transactions for an inactive wallet.');
             }
 
             /** @var WalletTransaction $transaction */
@@ -343,6 +419,10 @@ class WalletLedgerService
 
     /**
      * Manually approve a pending transaction.
+     *
+     * @param WalletTransaction $transaction
+     * @return bool
+     * @throws Throwable
      */
     public function approveTransaction(WalletTransaction $transaction): bool
     {
@@ -351,6 +431,11 @@ class WalletLedgerService
 
     /**
      * Manually reject a pending transaction.
+     *
+     * @param WalletTransaction $transaction
+     * @param string $reason
+     * @return bool
+     * @throws Throwable
      */
     public function rejectTransaction(WalletTransaction $transaction, string $reason = 'Rejected by admin'): bool
     {
@@ -359,6 +444,9 @@ class WalletLedgerService
 
     /**
      * Get wallet balance summary.
+     *
+     * @param Wallet $wallet
+     * @return array
      */
     public function getWalletSummary(Wallet $wallet): array
     {
@@ -377,6 +465,8 @@ class WalletLedgerService
     }
 
     /**
+     * Get wallet
+     *
      * @param Wallet $wallet
      * @return object
      */

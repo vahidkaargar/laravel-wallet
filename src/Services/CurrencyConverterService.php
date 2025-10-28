@@ -2,6 +2,7 @@
 
 namespace vahidkaargar\LaravelWallet\Services;
 
+use Exception;
 use vahidkaargar\LaravelWallet\Contracts\ExchangeRateProvider;
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 use vahidkaargar\LaravelWallet\ValueObjects\MoneyWithCurrency;
@@ -11,6 +12,9 @@ use vahidkaargar\LaravelWallet\ValueObjects\MoneyWithCurrency;
  */
 class CurrencyConverterService
 {
+    /**
+     * @param ExchangeRateProvider $exchangeRateProvider
+     */
     public function __construct(protected ExchangeRateProvider $exchangeRateProvider)
     {
     }
@@ -18,7 +22,11 @@ class CurrencyConverterService
     /**
      * Convert an amount from one currency to another.
      *
-     * @throws \Exception
+     * @param float $amount
+     * @param string $fromCurrency
+     * @param string $toCurrency
+     * @return float
+     * @throws Exception
      */
     public function convert(float $amount, string $fromCurrency, string $toCurrency): float
     {
@@ -33,7 +41,11 @@ class CurrencyConverterService
     /**
      * Convert Money object from one currency to another.
      *
-     * @throws \Exception
+     * @param Money $money
+     * @param string $fromCurrency
+     * @param string $toCurrency
+     * @return Money
+     * @throws Exception
      */
     public function convertMoney(Money $money, string $fromCurrency, string $toCurrency): Money
     {
@@ -48,7 +60,10 @@ class CurrencyConverterService
     /**
      * Convert MoneyWithCurrency to another currency.
      *
-     * @throws \Exception
+     * @param MoneyWithCurrency $money
+     * @param string $toCurrency
+     * @return MoneyWithCurrency
+     * @throws Exception
      */
     public function convertMoneyWithCurrency(MoneyWithCurrency $money, string $toCurrency): MoneyWithCurrency
     {
@@ -62,6 +77,8 @@ class CurrencyConverterService
 
     /**
      * Set a new exchange rate provider.
+     * @param ExchangeRateProvider $provider
+     * @return void
      */
     public function setExchangeRateProvider(ExchangeRateProvider $provider): void
     {
@@ -70,6 +87,7 @@ class CurrencyConverterService
 
     /**
      * Get the current exchange rate provider.
+     * @return ExchangeRateProvider
      */
     public function getExchangeRateProvider(): ExchangeRateProvider
     {

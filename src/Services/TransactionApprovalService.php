@@ -2,6 +2,9 @@
 
 namespace vahidkaargar\LaravelWallet\Services;
 
+use Exception;
+use InvalidArgumentException;
+use Throwable;
 use vahidkaargar\LaravelWallet\Events\CreditGranted;
 use vahidkaargar\LaravelWallet\Events\WalletDeposited;
 use vahidkaargar\LaravelWallet\Events\WalletWithdrawn;
@@ -19,20 +22,29 @@ use Illuminate\Support\Facades\Log;
  */
 class TransactionApprovalService
 {
+    /**
+     * @param CreditManagerService $creditManager
+     * @param ValidationService $validator
+     */
     public function __construct(
         protected CreditManagerService $creditManager,
-        protected ValidationService $validator
-    ) {
+        protected ValidationService    $validator
+    )
+    {
     }
 
     /**
      * Approves a pending transaction and applies it to the wallet balance.
      * This operation is atomic and uses pessimistic locking.
+     *
+     * @param WalletTransaction $transaction
+     * @return bool
+     * @throws Throwable
      */
     public function approve(WalletTransaction $transaction): bool
     {
         if (!$transaction->isPending()) {
-            Log::warning("Attempted to approve an already-processed transaction: {$transaction->id}");
+            Log::warning("Attempted to approve an already-processed transaction: $transaction->id");
             return false;
         }
 
@@ -65,7 +77,7 @@ class TransactionApprovalService
                 // Dispatch appropriate event
                 $this->dispatchApprovalEvent($wallet, $transaction);
 
-                Log::info("Transaction {$transaction->id} approved successfully", [
+                Log::info("Transaction $transaction->id approved successfully", [
                     'wallet_id' => $wallet->id,
                     'type' => $transaction->type,
                     'amount' => $amount->toDecimal(),
@@ -73,8 +85,8 @@ class TransactionApprovalService
 
                 return true;
 
-            } catch (\Exception $e) {
-                Log::error("Failed to approve transaction {$transaction->id}: {$e->getMessage()}", [
+            } catch (Exception $e) {
+                Log::error("Failed to approve transaction $transaction->id: {$e->getMessage()}", [
                     'wallet_id' => $wallet->id,
                     'type' => $transaction->type,
                     'amount' => $transaction->amount,
@@ -88,6 +100,10 @@ class TransactionApprovalService
 
     /**
      * Apply the transaction to the wallet based on its type.
+     *
+     * @param Wallet $wallet
+     * @param WalletTransaction $transaction
+     * @param Money $amount
      */
     protected function applyTransaction(Wallet $wallet, WalletTransaction $transaction, Money $amount): void
     {
@@ -129,12 +145,17 @@ class TransactionApprovalService
                 break;
 
             default:
-                throw new \InvalidArgumentException("Unknown transaction type: {$transaction->type}");
+                throw new InvalidArgumentException("Unknown transaction type: $transaction->type");
         }
     }
 
     /**
      * Rejects a pending transaction.
+     *
+     * @param WalletTransaction $transaction
+     * @param string $reason
+     * @return bool
+     * @throws Throwable
      */
     public function reject(WalletTransaction $transaction, string $reason = 'Transaction rejected'): bool
     {
@@ -150,7 +171,7 @@ class TransactionApprovalService
             ]);
             $transaction->save();
 
-            Log::info("Transaction {$transaction->id} rejected", [
+            Log::info("Transaction $transaction->id rejected", [
                 'wallet_id' => $transaction->wallet_id,
                 'type' => $transaction->type,
                 'amount' => $transaction->amount,
@@ -163,6 +184,9 @@ class TransactionApprovalService
 
     /**
      * Dispatches the appropriate event based on transaction type.
+     *
+     * @param Wallet $wallet
+     * @param WalletTransaction $transaction
      */
     protected function dispatchApprovalEvent(Wallet $wallet, WalletTransaction $transaction): void
     {

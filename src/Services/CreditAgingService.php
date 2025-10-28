@@ -2,6 +2,7 @@
 
 namespace vahidkaargar\LaravelWallet\Services;
 
+use Exception;
 use vahidkaargar\LaravelWallet\Models\Wallet;
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 use Illuminate\Support\Facades\Log;
@@ -11,10 +12,15 @@ use Illuminate\Support\Facades\Log;
  */
 class CreditAgingService
 {
+    /**
+     * @param WalletLedgerService $ledgerService
+     * @param CreditManagerService $creditManager
+     */
     public function __construct(
-        protected WalletLedgerService $ledgerService,
+        protected WalletLedgerService  $ledgerService,
         protected CreditManagerService $creditManager
-    ) {
+    )
+    {
     }
 
     /**
@@ -24,7 +30,7 @@ class CreditAgingService
     {
         try {
             $debt = $this->creditManager->getDebt($wallet);
-            
+
             if ($debt->isZero()) {
                 return;
             }
@@ -46,15 +52,15 @@ class CreditAgingService
                     ]
                 );
 
-                Log::info("Interest charged for wallet {$wallet->id}", [
+                Log::info("Interest charged for wallet $wallet->id", [
                     'wallet_id' => $wallet->id,
                     'debt' => $debt->toDecimal(),
                     'interest_rate' => $interestRate,
                     'interest_amount' => $interest->toDecimal(),
                 ]);
             }
-        } catch (\Exception $e) {
-            Log::error("Failed to process wallet aging for wallet ID {$wallet->id}: {$e->getMessage()}", [
+        } catch (Exception $e) {
+            Log::error("Failed to process wallet aging for wallet ID $wallet->id: {$e->getMessage()}", [
                 'wallet_id' => $wallet->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -65,21 +71,24 @@ class CreditAgingService
     /**
      * Process all active wallets with outstanding debt.
      * This is intended to be called from a scheduled command.
+     *
+     * @return int
      */
     public function processAllWallets(): int
     {
         $count = 0;
         $processedCount = 0;
-        
-        Wallet::where('balance', '<', 0)
+
+        Wallet::query()
+            ->where('balance', '<', 0)
             ->where('is_active', true)
             ->chunk(100, function ($wallets) use (&$count, &$processedCount) {
                 foreach ($wallets as $wallet) {
                     try {
                         $this->processWalletAging($wallet);
                         $processedCount++;
-                    } catch (\Exception $e) {
-                        Log::error("Failed to process aging for wallet {$wallet->id}: {$e->getMessage()}");
+                    } catch (Exception $e) {
+                        Log::error("Failed to process aging for wallet $wallet->id: {$e->getMessage()}");
                     }
                     $count++;
                 }
@@ -96,13 +105,16 @@ class CreditAgingService
 
     /**
      * Calculate total interest that would be charged across all wallets.
+     *
+     * @return Money
      */
     public function calculateTotalInterest(): Money
     {
         $totalInterest = Money::fromCents(0);
         $interestRate = config('wallet.interest_rate', 0.05);
 
-        Wallet::where('balance', '<', 0)
+        Wallet::query()
+            ->where('balance', '<', 0)
             ->where('is_active', true)
             ->chunk(100, function ($wallets) use (&$totalInterest, $interestRate) {
                 foreach ($wallets as $wallet) {
@@ -116,6 +128,8 @@ class CreditAgingService
 
     /**
      * Get aging summary for all wallets.
+     *
+     * @return array
      */
     public function getAgingSummary(): array
     {
@@ -133,7 +147,8 @@ class CreditAgingService
 
         $interestRate = config('wallet.interest_rate', 0.05);
 
-        Wallet::where('balance', '<', 0)
+        Wallet::query()
+            ->where('balance', '<', 0)
             ->where('is_active', true)
             ->chunk(100, function ($wallets) use (&$summary, $interestRate) {
                 foreach ($wallets as $wallet) {
