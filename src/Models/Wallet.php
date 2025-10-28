@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 
 /**
@@ -23,9 +25,13 @@ use vahidkaargar\LaravelWallet\ValueObjects\Money;
  * @property float $locked
  * @property float $balance
  * @property bool $is_active
+ * @property-read float $formatted_balance
+ * @property-read float $formatted_locked
+ * @property-read float $formatted_credit_limit
  * @property-read Money $available_balance
  * @property-read Money $available_funds
  * @property-read Money $debt
+ * @property-read Money $remaining_credit
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read User $user
@@ -64,6 +70,90 @@ class Wallet extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(WalletTransaction::class);
+    }
+
+    /**
+     * Get transactions with optional filters.
+     *
+     * @param TransactionType|null $type
+     * @param TransactionStatus|null $status
+     * @param Carbon|null $fromDate
+     * @param Carbon|null $toDate
+     * @param int|null $limit
+     * @param int $offset
+     * @return \Illuminate\Database\Eloquent\Collection|WalletTransaction[]
+     */
+    public function getTransactions(
+        ?TransactionType $type = null,
+        ?TransactionStatus $status = null,
+        ?Carbon $fromDate = null,
+        ?Carbon $toDate = null,
+        ?int $limit = null,
+        int $offset = 0
+    ): \Illuminate\Database\Eloquent\Collection {
+        $query = $this->transactions();
+
+        if ($type) {
+            $query->where('type', $type->value);
+        }
+
+        if ($status) {
+            $query->where('status', $status->value);
+        }
+
+        if ($fromDate) {
+            $query->where('created_at', '>=', $fromDate);
+        }
+
+        if ($toDate) {
+            $query->where('created_at', '<=', $toDate);
+        }
+
+        $query->orderBy('created_at', 'desc');
+
+        if ($limit) {
+            $query->limit($limit)->offset($offset);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Get transactions paginated with optional filters.
+     *
+     * @param TransactionType|null $type
+     * @param TransactionStatus|null $status
+     * @param Carbon|null $fromDate
+     * @param Carbon|null $toDate
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getTransactionsPaginated(
+        ?TransactionType $type = null,
+        ?TransactionStatus $status = null,
+        ?Carbon $fromDate = null,
+        ?Carbon $toDate = null,
+        int $perPage = 15
+    ): \Illuminate\Contracts\Pagination\LengthAwarePaginator {
+        $query = $this->transactions();
+
+        if ($type) {
+            $query->where('type', $type->value);
+        }
+
+        if ($status) {
+            $query->where('status', $status->value);
+        }
+
+        if ($fromDate) {
+            $query->where('created_at', '>=', $fromDate);
+        }
+
+        if ($toDate) {
+            $query->where('created_at', '<=', $toDate);
+        }
+
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     /**
@@ -162,5 +252,53 @@ class Wallet extends Model
 
         $remaining = $credit->subtract($debt);
         return $remaining->isPositive() ? $remaining : Money::fromCents(0);
+    }
+
+    /**
+     * Accessor for formatted balance.
+     *
+     * @return Attribute
+     */
+    protected function formattedBalance(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => Money::fromDecimal($this->balance)->toDecimal()
+        );
+    }
+
+    /**
+     * Accessor for formatted locked amount.
+     *
+     * @return Attribute
+     */
+    protected function formattedLocked(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => Money::fromDecimal($this->locked)->toDecimal()
+        );
+    }
+
+    /**
+     * Accessor for formatted credit limit.
+     *
+     * @return Attribute
+     */
+    protected function formattedCreditLimit(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => Money::fromDecimal($this->credit)->toDecimal()
+        );
+    }
+
+    /**
+     * Accessor for remaining credit as Money.
+     *
+     * @return Attribute
+     */
+    protected function remainingCredit(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->getRemainingCredit()
+        );
     }
 }
