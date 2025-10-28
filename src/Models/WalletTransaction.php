@@ -7,16 +7,18 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 
 /**
  * @property int $id
  * @property int $wallet_id
- * @property string $type
+ * @property TransactionType $type
  * @property float $amount
  * @property string|null $reference
  * @property array|null $meta
- * @property string $status
+ * @property TransactionStatus $status
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read Wallet $wallet
@@ -33,23 +35,10 @@ class WalletTransaction extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'meta' => 'json',
+        'type' => TransactionType::class,
+        'status' => TransactionStatus::class,
     ];
 
-    // Transaction Types
-    public const TYPE_DEPOSIT = 'deposit';
-    public const TYPE_WITHDRAW = 'withdraw';
-    public const TYPE_LOCK = 'lock';
-    public const TYPE_UNLOCK = 'unlock';
-    public const TYPE_CREDIT_GRANT = 'credit_grant';
-    public const TYPE_CREDIT_REVOKE = 'credit_revoke';
-    public const TYPE_CREDIT_REPAY = 'credit_repay';
-    public const TYPE_INTEREST_CHARGE = 'interest_charge';
-
-    // Transaction Statuses
-    public const STATUS_PENDING = 'pending';
-    public const STATUS_APPROVED = 'approved';
-    public const STATUS_REJECTED = 'rejected';
-    public const STATUS_REVERSED = 'reversed';
 
     /**
      * The wallet this transaction belongs to.
@@ -80,7 +69,7 @@ class WalletTransaction extends Model
      */
     public function isPending(): bool
     {
-        return $this->status === self::STATUS_PENDING;
+        return $this->status === TransactionStatus::PENDING;
     }
 
     /**
@@ -90,7 +79,7 @@ class WalletTransaction extends Model
      */
     public function isApproved(): bool
     {
-        return $this->status === self::STATUS_APPROVED;
+        return $this->status === TransactionStatus::APPROVED;
     }
 
     /**
@@ -100,7 +89,7 @@ class WalletTransaction extends Model
      */
     public function isRejected(): bool
     {
-        return $this->status === self::STATUS_REJECTED;
+        return $this->status === TransactionStatus::REJECTED;
     }
 
     /**
@@ -110,7 +99,7 @@ class WalletTransaction extends Model
      */
     public function isReversed(): bool
     {
-        return $this->status === self::STATUS_REVERSED;
+        return $this->status === TransactionStatus::REVERSED;
     }
 
     /**
@@ -120,7 +109,7 @@ class WalletTransaction extends Model
      */
     public function isDeposit(): bool
     {
-        return $this->type === self::TYPE_DEPOSIT;
+        return $this->type === TransactionType::DEPOSIT;
     }
 
     /**
@@ -130,7 +119,7 @@ class WalletTransaction extends Model
      */
     public function isWithdrawal(): bool
     {
-        return $this->type === self::TYPE_WITHDRAW;
+        return $this->type === TransactionType::WITHDRAW;
     }
 
     /**
@@ -140,11 +129,7 @@ class WalletTransaction extends Model
      */
     public function increasesBalance(): bool
     {
-        return in_array($this->type, [
-            self::TYPE_DEPOSIT,
-            self::TYPE_UNLOCK,
-            self::TYPE_CREDIT_REPAY,
-        ]);
+        return $this->type->increasesBalance();
     }
 
     /**
@@ -154,10 +139,6 @@ class WalletTransaction extends Model
      */
     public function decreasesBalance(): bool
     {
-        return in_array($this->type, [
-            self::TYPE_WITHDRAW,
-            self::TYPE_LOCK,
-            self::TYPE_INTEREST_CHARGE,
-        ]);
+        return $this->type->decreasesBalance();
     }
 }
