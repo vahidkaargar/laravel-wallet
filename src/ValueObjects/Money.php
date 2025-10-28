@@ -22,23 +22,29 @@ final class Money
 
     /**
      * Create Money from a decimal amount (e.g., 12.34).
+     *
+     * @param float|string $amount
+     * @return self
      */
     public static function fromDecimal(float|string $amount): self
     {
-        $amount = (string) $amount;
-        
+        $amount = (string)$amount;
+
         if (!is_numeric($amount)) {
-            throw new InvalidArgumentException("Invalid amount: {$amount}");
+            throw new InvalidArgumentException("Invalid amount: $amount");
         }
 
         // Convert to cents with proper rounding
-        $cents = (int) round((float) $amount * self::SCALE);
-        
+        $cents = (int)round((float)$amount * self::SCALE);
+
         return new self($cents);
     }
 
     /**
      * Create Money from cents (e.g., 1234 cents = $12.34).
+     *
+     * @param int $cents
+     * @return Money
      */
     public static function fromCents(int $cents): self
     {
@@ -47,6 +53,8 @@ final class Money
 
     /**
      * Get the amount as decimal (e.g., 12.34).
+     *
+     * @return float
      */
     public function toDecimal(): float
     {
@@ -55,6 +63,8 @@ final class Money
 
     /**
      * Get the amount in cents.
+     *
+     * @return int
      */
     public function toCents(): int
     {
@@ -63,6 +73,9 @@ final class Money
 
     /**
      * Add another Money amount.
+     *
+     * @param Money $other
+     * @return self
      */
     public function add(Money $other): self
     {
@@ -71,6 +84,9 @@ final class Money
 
     /**
      * Subtract another Money amount.
+     *
+     * @param Money $other
+     * @return self
      */
     public function subtract(Money $other): self
     {
@@ -79,28 +95,37 @@ final class Money
 
     /**
      * Multiply by a factor.
+     *
+     * @param float $factor
+     * @return Money
      */
     public function multiply(float $factor): self
     {
-        $result = (int) round($this->cents * $factor);
+        $result = (int)round($this->cents * $factor);
         return new self($result);
     }
 
     /**
      * Divide by a factor.
+     *
+     * @param float $divisor
+     * @return Money
      */
     public function divide(float $divisor): self
     {
         if ($divisor == 0) {
             throw new InvalidArgumentException('Cannot divide by zero');
         }
-        
-        $result = (int) round($this->cents / $divisor);
+
+        $result = (int)round($this->cents / $divisor);
         return new self($result);
     }
 
     /**
      * Check if this amount is greater than another.
+     *
+     * @param Money $other
+     * @return bool
      */
     public function greaterThan(Money $other): bool
     {
@@ -109,6 +134,9 @@ final class Money
 
     /**
      * Check if this amount is greater than or equal to another.
+     *
+     * @param Money $other
+     * @return bool
      */
     public function greaterThanOrEqual(Money $other): bool
     {
@@ -117,6 +145,9 @@ final class Money
 
     /**
      * Check if this amount is less than another.
+     *
+     * @param Money $other
+     * @return bool
      */
     public function lessThan(Money $other): bool
     {
@@ -125,6 +156,9 @@ final class Money
 
     /**
      * Check if this amount is less than or equal to another.
+     *
+     * @param Money $other
+     * @return bool
      */
     public function lessThanOrEqual(Money $other): bool
     {
@@ -133,6 +167,9 @@ final class Money
 
     /**
      * Check if this amount equals another.
+     *
+     * @param Money $other
+     * @return bool
      */
     public function equals(Money $other): bool
     {
@@ -141,6 +178,8 @@ final class Money
 
     /**
      * Check if this amount is zero.
+     *
+     * @return bool
      */
     public function isZero(): bool
     {
@@ -149,6 +188,8 @@ final class Money
 
     /**
      * Check if this amount is positive.
+     *
+     * @return bool
      */
     public function isPositive(): bool
     {
@@ -157,6 +198,8 @@ final class Money
 
     /**
      * Check if this amount is negative.
+     *
+     * @return bool
      */
     public function isNegative(): bool
     {
@@ -181,6 +224,8 @@ final class Money
 
     /**
      * String representation.
+     *
+     * @return string
      */
     public function __toString(): string
     {
@@ -189,6 +234,8 @@ final class Money
 
     /**
      * JSON serialization.
+     *
+     * @return array
      */
     public function jsonSerialize(): array
     {
