@@ -2,6 +2,7 @@
 
 namespace vahidkaargar\LaravelWallet\Events;
 
+use Illuminate\Broadcasting\Channel;
 use vahidkaargar\LaravelWallet\Models\Wallet;
 use vahidkaargar\LaravelWallet\Models\WalletTransaction;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -13,22 +14,28 @@ class CreditGranted
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+
     /**
      * Create a new event instance.
+     *
+     * @param Wallet $wallet
+     * @param float $amount
+     * @param WalletTransaction $transaction
      */
     public function __construct(
-        public Wallet $wallet,
-        public float $amount,
+        public Wallet            $wallet,
+        public float             $amount,
         public WalletTransaction $transaction
-    ) {
+    )
+    {
     }
 
     /**
      * Get the channels the event should broadcast on.
      *
-     * @return \Illuminate\Broadcasting\Channel|array
+     * @return Channel|PrivateChannel
      */
-    public function broadcastOn()
+    public function broadcastOn(): Channel|PrivateChannel
     {
         return new PrivateChannel('wallet.' . $this->wallet->id);
     }
