@@ -2,6 +2,8 @@
 
 namespace vahidkaargar\LaravelWallet\Tests;
 
+use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use vahidkaargar\LaravelWallet\Exceptions\InsufficientFundsException;
 use vahidkaargar\LaravelWallet\Exceptions\InvalidAmountException;
 use vahidkaargar\LaravelWallet\Models\WalletTransaction;
@@ -229,9 +231,9 @@ class ValidationServiceTest extends TestCase
         $this->wallet->refresh(); // Refresh to get updated balance
         
         $transaction = $this->wallet->transactions()->create([
-            'type' => WalletTransaction::TYPE_WITHDRAW,
+            'type' => TransactionType::WITHDRAW,
             'amount' => 50.00,
-            'status' => WalletTransaction::STATUS_PENDING,
+            'status' => TransactionStatus::PENDING,
         ]);
         
         // Should not throw exception
@@ -242,9 +244,9 @@ class ValidationServiceTest extends TestCase
     public function test_rejects_approval_of_non_pending_transaction()
     {
         $transaction = $this->wallet->transactions()->create([
-            'type' => WalletTransaction::TYPE_DEPOSIT,
+            'type' => TransactionType::DEPOSIT,
             'amount' => 100.00,
-            'status' => WalletTransaction::STATUS_APPROVED,
+            'status' => TransactionStatus::APPROVED,
         ]);
         
         $this->expectException(\Exception::class);
@@ -256,9 +258,9 @@ class ValidationServiceTest extends TestCase
     public function test_rejects_approval_of_invalid_withdrawal()
     {
         $transaction = $this->wallet->transactions()->create([
-            'type' => WalletTransaction::TYPE_WITHDRAW,
+            'type' => TransactionType::WITHDRAW,
             'amount' => 100.00,
-            'status' => WalletTransaction::STATUS_PENDING,
+            'status' => TransactionStatus::PENDING,
         ]);
         
         $this->expectException(InsufficientFundsException::class);

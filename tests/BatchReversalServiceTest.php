@@ -2,6 +2,8 @@
 
 namespace vahidkaargar\LaravelWallet\Tests;
 
+use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
+use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use vahidkaargar\LaravelWallet\Models\WalletTransaction;
 use vahidkaargar\LaravelWallet\Services\BatchReversalService;
 use vahidkaargar\LaravelWallet\Services\TransactionRollbackService;
@@ -62,7 +64,7 @@ class BatchReversalServiceTest extends TestCase
         $batchService = new BatchReversalService($mock);
 
         $count = $batchService->rollbackApprovedByTypeOlderThan(
-            WalletTransaction::TYPE_DEPOSIT,
+            TransactionType::DEPOSIT,
             now()->subDay(),
             'Test rollback'
         );
