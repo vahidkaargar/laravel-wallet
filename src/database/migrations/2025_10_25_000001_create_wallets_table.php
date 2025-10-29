@@ -17,9 +17,9 @@ return new class extends Migration {
             $table->string('slug');
             $table->text('description')->nullable();
             $table->tinyText('currency');
-            $table->decimal('credit', 15)->default(0);
-            $table->decimal('locked', 15)->default(0);
-            $table->decimal('balance', 15)->default(0);
+            $table->decimal('credit', 15, 2)->default(0);
+            $table->decimal('locked', 15, 2)->default(0);
+            $table->decimal('balance', 15, 2)->default(0);
             $table->boolean('is_active')->default(false);
             $table->timestamps();
 
