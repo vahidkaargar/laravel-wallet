@@ -69,28 +69,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Auto-approve Transactions
-    |--------------------------------------------------------------------------
-    |
-    | Whether to auto-approve transactions by default. Set to false for
-    | manual approval workflow.
-    |
-    */
-    'auto_approve_transactions' => env('WALLET_AUTO_APPROVE', true),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Transaction Timeout
-    |--------------------------------------------------------------------------
-    |
-    | How long (in minutes) pending transactions should remain valid before
-    | being automatically rejected.
-    |
-    */
-    'transaction_timeout_minutes' => env('WALLET_TRANSACTION_TIMEOUT', 60),
-
-    /*
-    |--------------------------------------------------------------------------
     | Logging Configuration
     |--------------------------------------------------------------------------
     |
