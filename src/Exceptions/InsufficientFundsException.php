@@ -2,9 +2,10 @@
 
 namespace vahidkaargar\LaravelWallet\Exceptions;
 
+use RuntimeException;
 use Throwable;
 
-class InsufficientFundsException extends \RuntimeException
+class InsufficientFundsException extends RuntimeException
 {
     /**
      * @param $message
