@@ -70,17 +70,32 @@ enum TransactionStatus: string
     }
 
     /**
-     * Get CSS class for status display.
+     * Get Bootstrap class for status display.
      *
      * @return string
      */
-    public function cssClass(): string
+    public function bootstrapClass(): string
     {
         return match ($this) {
             self::PENDING => 'warning',
             self::APPROVED => 'success',
             self::REJECTED => 'danger',
             self::REVERSED => 'secondary',
+        };
+    }
+
+    /**
+     * Get Tailwind class for status display.
+     *
+     * @return string
+     */
+    public function tailwindClass(): string
+    {
+        return match ($this) {
+            self::PENDING => 'yellow',
+            self::APPROVED => 'green',
+            self::REJECTED => 'red',
+            self::REVERSED => 'zinc',
         };
     }
 }
