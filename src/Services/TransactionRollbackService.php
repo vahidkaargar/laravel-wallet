@@ -5,14 +5,11 @@ namespace vahidkaargar\LaravelWallet\Services;
 use Exception;
 use InvalidArgumentException;
 use Throwable;
-use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
-use vahidkaargar\LaravelWallet\Enums\TransactionType;
+use vahidkaargar\LaravelWallet\Enums\{TransactionStatus, TransactionType};
 use vahidkaargar\LaravelWallet\Events\TransactionReversed;
-use vahidkaargar\LaravelWallet\Models\Wallet;
-use vahidkaargar\LaravelWallet\Models\WalletTransaction;
+use vahidkaargar\LaravelWallet\Models\{Wallet, WalletTransaction};
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\{DB, Log};
 
 /**
  * Service for "rolling back" (reversing) an *approved* transaction.
@@ -145,8 +142,8 @@ class TransactionRollbackService
     /**
      * Get the opposing transaction type for a reversal.
      *
-     * @param string $originalType
-     * @return string
+     * @param TransactionType $originalType
+     * @return TransactionType
      */
     protected function getReversalType(TransactionType $originalType): TransactionType
     {

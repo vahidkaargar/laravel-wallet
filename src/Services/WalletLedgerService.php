@@ -4,13 +4,8 @@ namespace vahidkaargar\LaravelWallet\Services;
 
 use Exception;
 use Throwable;
-use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
-use vahidkaargar\LaravelWallet\Enums\TransactionType;
-use vahidkaargar\LaravelWallet\Exceptions\InvalidAmountException;
-use vahidkaargar\LaravelWallet\Exceptions\InsufficientFundsException;
-use vahidkaargar\LaravelWallet\Models\Wallet;
-use vahidkaargar\LaravelWallet\Models\WalletTransaction;
-use vahidkaargar\LaravelWallet\Services\LoggingService;
+use vahidkaargar\LaravelWallet\Enums\{TransactionStatus, TransactionType};
+use vahidkaargar\LaravelWallet\Models\{Wallet, WalletTransaction};
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -70,7 +65,7 @@ class WalletLedgerService
                 $reference,
                 $meta
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger->logError('Failed to deposit funds via ledger service', [
                 'wallet_id' => $wallet->id ?? 'unknown',
                 'wallet_slug' => $wallet->slug ?? 'unknown',
@@ -128,7 +123,7 @@ class WalletLedgerService
                     false // Wallet is already locked, don't re-lock in createWalletTransaction
                 );
             });
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger->logError('Failed to withdraw funds via ledger service', [
                 'wallet_id' => $wallet->id ?? 'unknown',
                 'wallet_slug' => $wallet->slug ?? 'unknown',

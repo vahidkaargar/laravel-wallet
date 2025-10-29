@@ -3,13 +3,9 @@
 namespace vahidkaargar\LaravelWallet\Services;
 
 use Exception;
-use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
-use vahidkaargar\LaravelWallet\Enums\TransactionType;
-use vahidkaargar\LaravelWallet\Exceptions\InvalidAmountException;
-use vahidkaargar\LaravelWallet\Exceptions\InsufficientFundsException;
-use vahidkaargar\LaravelWallet\Exceptions\WalletNotFoundException;
-use vahidkaargar\LaravelWallet\Models\Wallet;
-use vahidkaargar\LaravelWallet\Models\WalletTransaction;
+use vahidkaargar\LaravelWallet\Enums\{TransactionStatus, TransactionType};
+use vahidkaargar\LaravelWallet\Exceptions\{InvalidAmountException, InsufficientFundsException, WalletNotFoundException};
+use vahidkaargar\LaravelWallet\Models\{Wallet, WalletTransaction};
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 
 /**

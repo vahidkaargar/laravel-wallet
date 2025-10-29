@@ -31,7 +31,7 @@ class ConfigExchangeRateProvider implements ExchangeRateProvider
         }
 
         if (!isset($this->rates[$fromCurrency][$toCurrency])) {
-            throw new Exception("Exchange rate from {$fromCurrency} to {$toCurrency} not found in configuration.");
+            throw new Exception("Exchange rate from $fromCurrency to $toCurrency not found in configuration.");
         }
 
         return $this->rates[$fromCurrency][$toCurrency];

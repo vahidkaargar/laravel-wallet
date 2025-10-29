@@ -3,6 +3,7 @@
 namespace vahidkaargar\LaravelWallet\Services;
 
 use Exception;
+use Throwable;
 use vahidkaargar\LaravelWallet\Models\Wallet;
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 use Illuminate\Support\Facades\Log;
@@ -25,6 +26,7 @@ class CreditAgingService
 
     /**
      * Process aging for a single wallet.
+     * @throws Throwable
      */
     public function processWalletAging(Wallet $wallet): void
     {
@@ -73,6 +75,7 @@ class CreditAgingService
      * This is intended to be called from a scheduled command.
      *
      * @return int
+     * @throws Throwable
      */
     public function processAllWallets(): int
     {

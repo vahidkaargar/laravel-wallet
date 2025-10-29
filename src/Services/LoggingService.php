@@ -4,6 +4,7 @@ namespace vahidkaargar\LaravelWallet\Services;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Config;
+use Throwable;
 
 /**
  * Centralized logging service for wallet operations.
@@ -18,10 +19,10 @@ class LoggingService
      *
      * @param string $message
      * @param array $context
-     * @param \Throwable|null $exception
+     * @param Throwable|null $exception
      * @return void
      */
-    public function logError(string $message, array $context = [], ?\Throwable $exception = null): void
+    public function logError(string $message, array $context = [], ?Throwable $exception = null): void
     {
         if (!$this->isErrorLoggingEnabled()) {
             return;
@@ -55,10 +56,10 @@ class LoggingService
      *
      * @param string $message
      * @param array $context
-     * @param \Throwable|null $exception
+     * @param Throwable|null $exception
      * @return void
      */
-    public function logWarning(string $message, array $context = [], ?\Throwable $exception = null): void
+    public function logWarning(string $message, array $context = [], ?Throwable $exception = null): void
     {
         if (!$this->isErrorLoggingEnabled()) {
             return;
@@ -151,10 +152,10 @@ class LoggingService
      * Prepare log context with optional exception and data masking.
      *
      * @param array $context
-     * @param \Throwable|null $exception
+     * @param Throwable|null $exception
      * @return array
      */
-    protected function prepareLogContext(array $context = [], ?\Throwable $exception = null): array
+    protected function prepareLogContext(array $context = [], ?Throwable $exception = null): array
     {
         $logContext = $context;
 
@@ -209,7 +210,7 @@ class LoggingService
      * @param mixed $value
      * @return string
      */
-    protected function maskValue($value): string
+    protected function maskValue(mixed $value): string
     {
         if (!is_string($value)) {
             return '[MASKED]';

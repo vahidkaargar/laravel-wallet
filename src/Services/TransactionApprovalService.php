@@ -5,17 +5,11 @@ namespace vahidkaargar\LaravelWallet\Services;
 use Exception;
 use InvalidArgumentException;
 use Throwable;
-use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
-use vahidkaargar\LaravelWallet\Enums\TransactionType;
-use vahidkaargar\LaravelWallet\Events\CreditGranted;
-use vahidkaargar\LaravelWallet\Events\WalletDeposited;
-use vahidkaargar\LaravelWallet\Events\WalletWithdrawn;
-use vahidkaargar\LaravelWallet\Exceptions\InsufficientFundsException;
-use vahidkaargar\LaravelWallet\Models\Wallet;
-use vahidkaargar\LaravelWallet\Models\WalletTransaction;
+use vahidkaargar\LaravelWallet\Enums\{TransactionStatus, TransactionType};
+use vahidkaargar\LaravelWallet\Events\{CreditGranted, WalletDeposited, WalletWithdrawn};
+use vahidkaargar\LaravelWallet\Models\{Wallet, WalletTransaction};
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\{DB, Log};
 
 /**
  * Service dedicated to approving or rejecting pending transactions.
