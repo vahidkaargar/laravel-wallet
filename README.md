@@ -189,10 +189,10 @@ $user->withdraw('usd', 250.00);
 $user->grantCredit('usd', 5000.00);
 
 // Lock funds (for escrow)
-$user->lock('usd', 100.00);
+$user->lockFunds('usd', 100.00);
 
 // Unlock funds
-$user->unlock('usd', 100.00);
+$user->unlockFunds('usd', 100.00);
 ```
 
 ### 4. Cross-wallet transfers with currency conversion
@@ -554,14 +554,14 @@ $user->revokeCredit('usd', 4500.00);
 
 ```php
 // Lock funds for escrow
-$user->lock('usd', 500.00);
+$user->lockFunds('usd', 500.00);
 // Available balance decreases, locked amount increases
 
 // Process escrow (example: approve a purchase)
 // ... business logic ...
 
 // Unlock funds after successful transaction
-$user->unlock('usd', 500.00);
+$user->unlockFunds('usd', 500.00);
 // Locked amount decreases, available balance increases
 ```
 
