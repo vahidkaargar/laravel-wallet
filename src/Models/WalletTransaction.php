@@ -5,6 +5,7 @@ namespace vahidkaargar\LaravelWallet\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
@@ -12,10 +13,11 @@ use vahidkaargar\LaravelWallet\Enums\TransactionType;
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 
 /**
- * @property int $id
+ * @property string $id
  * @property int $wallet_id
  * @property TransactionType $type
  * @property float $amount
+ * @property string $description
  * @property string|null $reference
  * @property array|null $meta
  * @property TransactionStatus $status
@@ -26,18 +28,31 @@ use vahidkaargar\LaravelWallet\ValueObjects\Money;
  */
 class WalletTransaction extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUlids;
 
     protected $table = 'wallet_transactions';
 
     protected $guarded = ['id'];
+    protected $keyType = 'string';
+    public $incrementing = false;
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'meta' => 'json',
+        'meta' => 'array',
         'type' => TransactionType::class,
         'status' => TransactionStatus::class,
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $model) {
+            if (empty($model->description)) {
+                $amount = number_format((float)$model->amount, 2, '.', '');
+                $suffix = $model->reference ? ' (ref: ' . $model->reference . ')' : '';
+                $model->description = sprintf('%s of %s%s', $model->type->label(), $amount, $suffix);
+            }
+        });
+    }
 
 
     /**
