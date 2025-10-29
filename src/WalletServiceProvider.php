@@ -2,16 +2,17 @@
 
 namespace vahidkaargar\LaravelWallet;
 
-use vahidkaargar\LaravelWallet\Services\BatchReversalService;
-use vahidkaargar\LaravelWallet\Services\CreditAgingService;
-use vahidkaargar\LaravelWallet\Services\CreditManagerService;
-use vahidkaargar\LaravelWallet\Services\CurrencyConverterService;
-use vahidkaargar\LaravelWallet\Services\ConfigExchangeRateProvider;
-use vahidkaargar\LaravelWallet\Services\LoggingService;
-use vahidkaargar\LaravelWallet\Services\TransactionApprovalService;
-use vahidkaargar\LaravelWallet\Services\TransactionRollbackService;
-use vahidkaargar\LaravelWallet\Services\ValidationService;
-use vahidkaargar\LaravelWallet\Services\WalletLedgerService;
+use vahidkaargar\LaravelWallet\Services\{ValidationService,
+    WalletLedgerService,
+    TransactionRollbackService,
+    BatchReversalService,
+    CreditAgingService,
+    CreditManagerService,
+    CurrencyConverterService,
+    ConfigExchangeRateProvider,
+    LoggingService,
+    TransactionApprovalService
+};
 use vahidkaargar\LaravelWallet\Contracts\ExchangeRateProvider;
 use Illuminate\Support\ServiceProvider;
 
