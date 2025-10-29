@@ -31,6 +31,7 @@ class WalletTransactionFilterTest extends TestCase
             'type' => TransactionType::DEPOSIT,
             'status' => TransactionStatus::APPROVED,
             'amount' => 100.00,
+            'description' => 'Test deposit 1',
             'created_at' => Carbon::now()->subDays(5),
         ]);
 
@@ -39,6 +40,7 @@ class WalletTransactionFilterTest extends TestCase
             'type' => TransactionType::DEPOSIT,
             'status' => TransactionStatus::APPROVED,
             'amount' => 200.00,
+            'description' => 'Test deposit 2',
             'created_at' => Carbon::now()->subDays(3),
         ]);
 
@@ -47,6 +49,7 @@ class WalletTransactionFilterTest extends TestCase
             'type' => TransactionType::WITHDRAW,
             'status' => TransactionStatus::APPROVED,
             'amount' => 50.00,
+            'description' => 'Test withdraw 1',
             'created_at' => Carbon::now()->subDays(1),
         ]);
 
@@ -55,6 +58,7 @@ class WalletTransactionFilterTest extends TestCase
             'type' => TransactionType::DEPOSIT,
             'status' => TransactionStatus::PENDING,
             'amount' => 75.00,
+            'description' => 'Test pending',
             'created_at' => Carbon::now()->subHours(2),
         ]);
 
@@ -63,6 +67,7 @@ class WalletTransactionFilterTest extends TestCase
             'type' => TransactionType::WITHDRAW,
             'status' => TransactionStatus::REJECTED,
             'amount' => 100.00,
+            'description' => 'Test rejected',
             'created_at' => Carbon::now()->subHours(1),
         ]);
     }

@@ -134,7 +134,7 @@ class ValidationServiceTest extends TestCase
     {
         $this->ledgerService->deposit($this->wallet, Money::fromDecimal(100.00));
         $this->wallet->refresh(); // Refresh after deposit
-        $this->ledgerService->lock($this->wallet, Money::fromDecimal(80.00));
+        $this->ledgerService->lockFunds($this->wallet, Money::fromDecimal(80.00));
         $this->wallet->refresh(); // Refresh to get updated locked amount
         
         $this->expectException(InsufficientFundsException::class);
@@ -147,7 +147,7 @@ class ValidationServiceTest extends TestCase
     {
         $this->ledgerService->deposit($this->wallet, Money::fromDecimal(100.00));
         $this->wallet->refresh(); // Refresh after deposit
-        $this->ledgerService->lock($this->wallet, Money::fromDecimal(50.00));
+        $this->ledgerService->lockFunds($this->wallet, Money::fromDecimal(50.00));
         $this->wallet->refresh(); // Refresh to get updated locked amount
         
         $amount = Money::fromDecimal(30.00);

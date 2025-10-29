@@ -86,7 +86,7 @@ class WalletLedgerServiceTest extends TestCase
         $this->wallet->refresh(); // Refresh to get updated balance
         
         $amount = Money::fromDecimal(30.00);
-        $transaction = $this->ledgerService->lock($this->wallet, $amount);
+        $transaction = $this->ledgerService->lockFunds($this->wallet, $amount);
         
         $this->assertInstanceOf(WalletTransaction::class, $transaction);
         $this->assertEquals(TransactionType::LOCK, $transaction->type);
@@ -103,7 +103,7 @@ class WalletLedgerServiceTest extends TestCase
         $this->expectException(InsufficientFundsException::class);
         
         $amount = Money::fromDecimal(100.00);
-        $this->ledgerService->lock($this->wallet, $amount);
+        $this->ledgerService->lockFunds($this->wallet, $amount);
     }
 
     public function test_can_unlock_funds()
@@ -111,11 +111,11 @@ class WalletLedgerServiceTest extends TestCase
         // First deposit and lock some funds
         $this->ledgerService->deposit($this->wallet, Money::fromDecimal(100.00));
         $this->wallet->refresh(); // Refresh after deposit
-        $this->ledgerService->lock($this->wallet, Money::fromDecimal(30.00));
+        $this->ledgerService->lockFunds($this->wallet, Money::fromDecimal(30.00));
         $this->wallet->refresh(); // Refresh to get updated locked amount
         
         $amount = Money::fromDecimal(20.00);
-        $transaction = $this->ledgerService->unlock($this->wallet, $amount);
+        $transaction = $this->ledgerService->unlockFunds($this->wallet, $amount);
         
         $this->assertInstanceOf(WalletTransaction::class, $transaction);
         $this->assertEquals(TransactionType::UNLOCK, $transaction->type);
@@ -132,7 +132,7 @@ class WalletLedgerServiceTest extends TestCase
         $this->expectException(InsufficientFundsException::class);
         
         $amount = Money::fromDecimal(100.00);
-        $this->ledgerService->unlock($this->wallet, $amount);
+        $this->ledgerService->unlockFunds($this->wallet, $amount);
     }
 
     public function test_can_grant_credit()
@@ -265,7 +265,7 @@ class WalletLedgerServiceTest extends TestCase
         $this->wallet->refresh(); // Refresh after deposit
         $this->ledgerService->grantCredit($this->wallet, Money::fromDecimal(500.00));
         $this->wallet->refresh(); // Refresh after credit grant
-        $this->ledgerService->lock($this->wallet, Money::fromDecimal(30.00));
+        $this->ledgerService->lockFunds($this->wallet, Money::fromDecimal(30.00));
         $this->wallet->refresh(); // Refresh to get all updated values
         
         // Get wallet with formatted fields
