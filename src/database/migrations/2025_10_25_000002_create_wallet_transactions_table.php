@@ -11,7 +11,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('wallet_transactions', function (Blueprint $table) {
-            $table->id();
+            $table->ulid('id')->primary();
             $table->foreignId('wallet_id')->constrained()->cascadeOnDelete();
             $table->enum('type', [
                 'deposit',
@@ -24,6 +24,7 @@ return new class extends Migration {
                 'interest_charge'
             ])->index();
             $table->decimal('amount', 15);
+            $table->string('description');
             $table->string('reference')->nullable();
             $table->json('meta')->nullable();
             $table->enum('status', [
