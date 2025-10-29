@@ -59,7 +59,8 @@ return [
     'logging' => [
         'enabled' => env('WALLET_ERROR_LOGGING', true),
         'audit_enabled' => env('WALLET_AUDIT_LOGGING', true),
-        'channel' => env('WALLET_LOG_CHANNEL', 'wallet'),
+        // Null (default) uses the app default channel; set to a custom channel name to route logs
+        'channel' => env('WALLET_LOG_CHANNEL', 'null'),
         'level' => env('WALLET_LOG_LEVEL', 'error'),
         'include_stack_trace' => env('WALLET_LOG_STACK_TRACE', true),
         'mask_sensitive_data' => env('WALLET_MASK_SENSITIVE_DATA', false),
@@ -276,6 +277,45 @@ $wallet = $user->getWallet('usd');
 $transactions = $wallet->getTransactions(type: TransactionType::DEPOSIT);
 $paginated = $wallet->getTransactionsPaginated(status: TransactionStatus::APPROVED);
 ```
+
+### 7. Transactions Data Model (ULIDs, Descriptions, Meta)
+
+All transactions use ULID primary keys for high-entropy sortable IDs. Each transaction has a required `description` and a consistent `meta` schema to improve auditability and retrieval.
+
+Key fields:
+
+- `id` (ULID, string)
+- `wallet_id` (int, indexed)
+- `type` (enum, indexed): deposit, withdraw, lock, unlock, credit_grant, credit_revoke, credit_repay, interest_charge
+- `status` (enum, indexed): pending, approved, rejected, reversed
+- `amount` (decimal 15,2)
+- `description` (string, required)
+- `reference` (string, nullable, indexed)
+- `meta` (json, consistent structure)
+- `created_at` (indexed), `updated_at`
+
+Meta structure (standardized and retrievable):
+
+```json
+{
+  "correlation_id": "01HXYZ...", 
+  "initiated_by": "system|user|schedule",
+  "actor_user_id": 123,
+  "reference": "ORDER-1001",
+  "ip": "203.0.113.10",
+  "user_agent": "Mozilla/5.0 ...",
+  "tags": ["checkout", "promo-2025"],
+  "context": {"order_id": 1001, "source": "web"},
+  "notes": "...",
+  "audit": {"type": "deposit", "currency": "USD", "amount_decimal": 100.00}
+}
+```
+
+Notes:
+
+- `description` is auto-generated when not provided (e.g., "Deposit of 100.00 (ref: ORDER-1001)").
+- Custom meta keys you pass are preserved and merged at the root for easy querying.
+- DB indexes: `wallet_id`, `type`, `status`, `reference`, `created_at`.
 
 ## Advanced Usage
 
