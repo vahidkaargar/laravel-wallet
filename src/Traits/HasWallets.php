@@ -192,7 +192,7 @@ trait HasWallets
      * @return WalletTransaction
      * @throws Throwable
      */
-    public function lock(
+    public function lockFunds(
         string             $walletSlug,
         Money|float|string $amount,
         ?string            $reference = null,
@@ -203,7 +203,7 @@ trait HasWallets
         try {
             $wallet = $this->getWallet($walletSlug);
             $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
-            return $this->ledger()->lock($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+            return $this->ledger()->lockFunds($wallet, $moneyAmount, $autoApprove, $reference, $meta);
         } catch (\Exception $e) {
             $this->logger()->logError('Failed to lock funds', [
                 'user_id' => $this->id ?? 'unknown',
@@ -230,7 +230,7 @@ trait HasWallets
      * @return WalletTransaction
      * @throws Throwable
      */
-    public function unlock(
+    public function unlockFunds(
         string             $walletSlug,
         Money|float|string $amount,
         ?string            $reference = null,
@@ -241,7 +241,7 @@ trait HasWallets
         try {
             $wallet = $this->getWallet($walletSlug);
             $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
-            return $this->ledger()->unlock($wallet, $moneyAmount, $autoApprove, $reference, $meta);
+            return $this->ledger()->unlockFunds($wallet, $moneyAmount, $autoApprove, $reference, $meta);
         } catch (\Exception $e) {
             $this->logger()->logError('Failed to unlock funds', [
                 'user_id' => $this->id ?? 'unknown',
