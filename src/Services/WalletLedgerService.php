@@ -13,6 +13,7 @@ use vahidkaargar\LaravelWallet\Models\WalletTransaction;
 use vahidkaargar\LaravelWallet\Services\LoggingService;
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Service for creating and managing wallet transactions (the "ledger").
@@ -153,7 +154,7 @@ class WalletLedgerService
      * @return WalletTransaction
      * @throws Throwable
      */
-    public function lock(
+    public function lockFunds(
         Wallet  $wallet,
         Money   $amount,
         bool    $autoApprove = true,
@@ -196,7 +197,7 @@ class WalletLedgerService
      * @return WalletTransaction
      * @throws Throwable
      */
-    public function unlock(
+    public function unlockFunds(
         Wallet  $wallet,
         Money   $amount,
         bool    $autoApprove = true,
@@ -426,12 +427,16 @@ class WalletLedgerService
                 throw new Exception('Cannot auto-approve transactions for an inactive wallet.');
             }
 
+            $description = $this->generateDescription($type, $amount, $reference);
+            $normalizedMeta = $this->normalizeMeta($walletInstance, $type, $amount, $reference, $meta);
+
             /** @var WalletTransaction $transaction */
             $transaction = $walletInstance->transactions()->create([
                 'type' => $type->value,
                 'amount' => $amount->toDecimal(),
+                'description' => $description,
                 'reference' => $reference,
-                'meta' => $meta,
+                'meta' => $normalizedMeta,
                 'status' => TransactionStatus::PENDING,
             ]);
 
@@ -447,6 +452,46 @@ class WalletLedgerService
         }
 
         return $createAndApprove($wallet);
+    }
+
+    /**
+     * Generate a human-readable description for the transaction.
+     */
+    protected function generateDescription(TransactionType $type, Money $amount, ?string $reference): string
+    {
+        $desc = sprintf('%s of %0.2f', $type->label(), $amount->toDecimal());
+        if ($reference) {
+            $desc .= sprintf(' (ref: %s)', $reference);
+        }
+        return $desc;
+    }
+
+    /**
+     * Normalize meta into a consistent, retrievable structure.
+     */
+    protected function normalizeMeta(Wallet $wallet, TransactionType $type, Money $amount, ?string $reference, ?array $meta): array
+    {
+        $meta = $meta ?? [];
+
+        $standard = [
+            'correlation_id' => $meta['correlation_id'] ?? (string) Str::ulid(),
+            'initiated_by' => $meta['initiated_by'] ?? 'system', // user|system|schedule
+            'actor_user_id' => $meta['actor_user_id'] ?? $wallet->user_id,
+            'reference' => $reference,
+            'ip' => $meta['ip'] ?? null,
+            'user_agent' => $meta['user_agent'] ?? null,
+            'tags' => array_values(array_unique(array_map('strval', $meta['tags'] ?? []))),
+            'context' => is_array($meta['context'] ?? null) ? $meta['context'] : [],
+            'notes' => isset($meta['notes']) ? (string) $meta['notes'] : null,
+            'audit' => [
+                'type' => $type->value,
+                'currency' => $wallet->currency,
+                'amount_decimal' => $amount->toDecimal(),
+            ],
+        ];
+
+        // Preserve any provided custom keys at the root level for retrievability
+        return array_merge($meta, $standard);
     }
 
     /**
