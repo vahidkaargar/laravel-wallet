@@ -3,17 +3,17 @@
 namespace vahidkaargar\LaravelWallet\Traits;
 
 use Carbon\Carbon;
+use Exception;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use RuntimeException;
 use Throwable;
-use vahidkaargar\LaravelWallet\Enums\TransactionStatus;
-use vahidkaargar\LaravelWallet\Enums\TransactionType;
+use vahidkaargar\LaravelWallet\Enums\{TransactionStatus, TransactionType};
 use vahidkaargar\LaravelWallet\Exceptions\WalletNotFoundException;
-use vahidkaargar\LaravelWallet\Models\Wallet;
-use vahidkaargar\LaravelWallet\Models\WalletTransaction;
-use vahidkaargar\LaravelWallet\Services\LoggingService;
-use vahidkaargar\LaravelWallet\Services\WalletLedgerService;
+use vahidkaargar\LaravelWallet\Models\{Wallet, WalletTransaction};
+use vahidkaargar\LaravelWallet\Services\{LoggingService, WalletLedgerService};
 use vahidkaargar\LaravelWallet\ValueObjects\Money;
 
 /**
@@ -56,7 +56,7 @@ trait HasWallets
      *
      * @param string|Wallet $walletOrSlug
      * @return Wallet
-     * @throws WalletNotFoundException
+     * @throws WalletNotFoundException|Exception
      */
     public function getWallet(string|Wallet $walletOrSlug): Wallet
     {
@@ -74,7 +74,7 @@ trait HasWallets
             }
 
             return $wallet;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to get wallet', [
                 'user_id' => $this->id ?? 'unknown',
                 'wallet_slug' => is_string($walletOrSlug) ? $walletOrSlug : $walletOrSlug->slug ?? 'unknown',
@@ -128,7 +128,7 @@ trait HasWallets
             $wallet = $this->getWallet($walletSlug);
             $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
             return $this->ledger()->deposit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to deposit funds', [
                 'user_id' => $this->id ?? 'unknown',
                 'wallet_slug' => $walletSlug,
@@ -166,7 +166,7 @@ trait HasWallets
             $wallet = $this->getWallet($walletSlug);
             $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
             return $this->ledger()->withdraw($wallet, $moneyAmount, $autoApprove, $reference, $meta);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to withdraw funds', [
                 'user_id' => $this->id ?? 'unknown',
                 'wallet_slug' => $walletSlug,
@@ -204,7 +204,7 @@ trait HasWallets
             $wallet = $this->getWallet($walletSlug);
             $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
             return $this->ledger()->lockFunds($wallet, $moneyAmount, $autoApprove, $reference, $meta);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to lock funds', [
                 'user_id' => $this->id ?? 'unknown',
                 'wallet_slug' => $walletSlug,
@@ -242,7 +242,7 @@ trait HasWallets
             $wallet = $this->getWallet($walletSlug);
             $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
             return $this->ledger()->unlockFunds($wallet, $moneyAmount, $autoApprove, $reference, $meta);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to unlock funds', [
                 'user_id' => $this->id ?? 'unknown',
                 'wallet_slug' => $walletSlug,
@@ -280,7 +280,7 @@ trait HasWallets
             $wallet = $this->getWallet($walletSlug);
             $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
             return $this->ledger()->grantCredit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to grant credit', [
                 'user_id' => $this->id ?? 'unknown',
                 'wallet_slug' => $walletSlug,
@@ -318,7 +318,7 @@ trait HasWallets
             $wallet = $this->getWallet($walletSlug);
             $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
             return $this->ledger()->revokeCredit($wallet, $moneyAmount, $autoApprove, $reference, $meta);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to revoke credit', [
                 'user_id' => $this->id ?? 'unknown',
                 'wallet_slug' => $walletSlug,
@@ -357,7 +357,7 @@ trait HasWallets
             $wallet = $this->getWallet($walletSlug);
             $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
             return $this->ledger()->chargeInterest($wallet, $moneyAmount, $autoApprove, $reference, $meta);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to charge interest', [
                 'user_id' => $this->id ?? 'unknown',
                 'wallet_slug' => $walletSlug,
@@ -382,7 +382,7 @@ trait HasWallets
      * @param Carbon|null $toDate
      * @param int|null $limit
      * @param int $offset
-     * @return \Illuminate\Database\Eloquent\Collection|WalletTransaction[]
+     * @return Collection
      */
     public function getWalletTransactions(
         string|Wallet $walletOrSlug,
@@ -392,11 +392,12 @@ trait HasWallets
         ?Carbon $toDate = null,
         ?int $limit = null,
         int $offset = 0
-    ): \Illuminate\Database\Eloquent\Collection {
+    ): Collection
+    {
         try {
             $wallet = $this->getWallet($walletOrSlug);
             return $wallet->getTransactions($type, $status, $fromDate, $toDate, $limit, $offset);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to get wallet transactions via trait', [
                 'user_id' => $this->id ?? 'unknown',
                 'wallet_slug' => is_string($walletOrSlug) ? $walletOrSlug : $walletOrSlug->slug ?? 'unknown',
@@ -408,7 +409,7 @@ trait HasWallets
                 'offset' => $offset,
             ], $e);
             
-            throw new \RuntimeException('Failed to retrieve wallet transactions: ' . $e->getMessage(), 0, $e);
+            throw new RuntimeException('Failed to retrieve wallet transactions: ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -421,7 +422,7 @@ trait HasWallets
      * @param Carbon|null $fromDate
      * @param Carbon|null $toDate
      * @param int $perPage
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     * @return LengthAwarePaginator
      */
     public function getWalletTransactionsPaginated(
         string|Wallet $walletOrSlug,
@@ -430,11 +431,11 @@ trait HasWallets
         ?Carbon $fromDate = null,
         ?Carbon $toDate = null,
         int $perPage = 15
-    ): \Illuminate\Contracts\Pagination\LengthAwarePaginator {
+    ): LengthAwarePaginator {
         try {
             $wallet = $this->getWallet($walletOrSlug);
             return $wallet->getTransactionsPaginated($type, $status, $fromDate, $toDate, $perPage);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to get paginated wallet transactions via trait', [
                 'user_id' => $this->id ?? 'unknown',
                 'wallet_slug' => is_string($walletOrSlug) ? $walletOrSlug : $walletOrSlug->slug ?? 'unknown',
@@ -445,7 +446,7 @@ trait HasWallets
                 'per_page' => $perPage,
             ], $e);
             
-            throw new \RuntimeException('Failed to retrieve paginated wallet transactions: ' . $e->getMessage(), 0, $e);
+            throw new RuntimeException('Failed to retrieve paginated wallet transactions: ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -476,7 +477,7 @@ trait HasWallets
             $moneyAmount = $amount instanceof Money ? $amount : Money::fromDecimal($amount);
 
             return $this->ledger()->transfer($fromWallet, $toWallet, $moneyAmount, $autoApprove, $reference, $meta);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to transfer funds', [
                 'user_id' => $this->id ?? 'unknown',
                 'from_wallet_slug' => $fromWalletSlug,
