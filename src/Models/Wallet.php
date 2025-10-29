@@ -4,6 +4,8 @@ namespace vahidkaargar\LaravelWallet\Models;
 
 use App\Models\User;
 use Carbon\Carbon;
+use Exception;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -92,7 +94,8 @@ class Wallet extends Model
      * @param Carbon|null $toDate
      * @param int|null $limit
      * @param int $offset
-     * @return \Illuminate\Database\Eloquent\Collection|WalletTransaction[]
+     * @return Collection
+     * @throws Exception
      */
     public function getTransactions(
         ?TransactionType $type = null,
@@ -101,34 +104,29 @@ class Wallet extends Model
         ?Carbon $toDate = null,
         ?int $limit = null,
         int $offset = 0
-    ): \Illuminate\Database\Eloquent\Collection {
+    ): Collection
+    {
         try {
-            $query = $this->transactions();
-
-            if ($type) {
-                $query->where('type', $type->value);
-            }
-
-            if ($status) {
-                $query->where('status', $status->value);
-            }
-
-            if ($fromDate) {
-                $query->where('created_at', '>=', $fromDate);
-            }
-
-            if ($toDate) {
-                $query->where('created_at', '<=', $toDate);
-            }
-
-            $query->orderBy('created_at', 'desc');
-
-            if ($limit) {
-                $query->limit($limit)->offset($offset);
-            }
+            $query = $this->transactions()
+                ->when($type, function ($q) use ($type) {
+                    $q->where('type', $type->value);
+                })
+                ->when($status, function ($q) use ($status) {
+                    $q->where('status', $status->value);
+                })
+                ->when($fromDate, function ($q) use ($fromDate) {
+                    $q->where('created_at', '>=', $fromDate);
+                })
+                ->when($toDate, function ($q) use ($toDate) {
+                    $q->where('created_at', '<=', $toDate);
+                })
+                ->orderBy('created_at', 'desc')
+                ->when($limit, function ($q) use ($limit, $offset) {
+                    $q->limit($limit)->offset($offset);
+                });
 
             return $query->get();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to get wallet transactions', [
                 'wallet_id' => $this->id,
                 'type' => $type?->value,
@@ -152,7 +150,8 @@ class Wallet extends Model
      * @param Carbon|null $fromDate
      * @param Carbon|null $toDate
      * @param int $perPage
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     * @return LengthAwarePaginator
+     * @throws Exception
      */
     public function getTransactionsPaginated(
         ?TransactionType $type = null,
@@ -160,28 +159,24 @@ class Wallet extends Model
         ?Carbon $fromDate = null,
         ?Carbon $toDate = null,
         int $perPage = 15
-    ): \Illuminate\Contracts\Pagination\LengthAwarePaginator {
+    ): LengthAwarePaginator {
         try {
-            $query = $this->transactions();
-
-            if ($type) {
-                $query->where('type', $type->value);
-            }
-
-            if ($status) {
-                $query->where('status', $status->value);
-            }
-
-            if ($fromDate) {
-                $query->where('created_at', '>=', $fromDate);
-            }
-
-            if ($toDate) {
-                $query->where('created_at', '<=', $toDate);
-            }
-
-            return $query->orderBy('created_at', 'desc')->paginate($perPage);
-        } catch (\Exception $e) {
+            return $this->transactions()
+                ->when($type, function ($q) use ($type) {
+                    $q->where('type', $type->value);
+                })
+                ->when($status, function ($q) use ($status) {
+                    $q->where('status', $status->value);
+                })
+                ->when($fromDate, function ($q) use ($fromDate) {
+                    $q->where('created_at', '>=', $fromDate);
+                })
+                ->when($toDate, function ($q) use ($toDate) {
+                    $q->where('created_at', '<=', $toDate);
+                })
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage);
+        } catch (Exception $e) {
             $this->logger()->logError('Failed to get paginated wallet transactions', [
                 'wallet_id' => $this->id,
                 'type' => $type?->value,
