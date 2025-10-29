@@ -22,8 +22,8 @@ return new class extends Migration {
                 'credit_revoke',
                 'credit_repay',
                 'interest_charge'
-            ])->index();
-            $table->decimal('amount', 15);
+            ]);
+            $table->decimal('amount', 15, 2);
             $table->string('description');
             $table->string('reference')->nullable();
             $table->json('meta')->nullable();
@@ -35,8 +35,10 @@ return new class extends Migration {
             ])->default('pending');
             $table->timestamps();
 
+            $table->index('type');
             $table->index('status');
             $table->index('reference');
+            $table->index('created_at');
         });
     }
 
